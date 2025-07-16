@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Dashboard Sinh Viên - PY/PL Learn</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div class="sidebar">
+    <h2 style="padding-left:16px;">PY/PL Learn</h2>
+    <a href="./index.html">🏠 Trang chủ</a>
+    <a href="./khoahoc/index.html">📚 Khóa học</a>
+    <a href="./baitap/baitap.html">📝 Bài tập</a>
+    <a href="./idebaitap/ide.html">💻 IDE Online</a>
+    <a href="./ai/ai.html">🤖 AI Trợ giúp</a>
+    <a href="./danhgia/danhgia.html">⭐ Đánh giá</a>
+    <a href="./thongbao/thongbao.html">🔔 Thông báo</a>
+    <a href="./hoso/hoso.html">👤 Hồ sơ</a>
+  </div>
+
+  <div class="main">
+    <h1>Chào mừng, Sinh viên 👋</h1>
+    <p>Chúc bạn học tập tốt với PERL & PYTHON!</p>
+
+    <div class="card">
+      <h3>📘 Tiến độ học: Python cơ bản</h3>
+      <div class="progress-bar">
+        <div class="progress-fill">0%</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>📅 Bài tập sắp đến hạn</h3>
+      <ul></ul>
+    </div>
+
+    <div class="card">
+      <h3>🤖 Gợi ý từ AI</h3>
+      <p>👉 Đang tải gợi ý...</p>
+    </div>
+
+    <div class="card">
+      <h3>🧾 Hoạt động gần đây</h3>
+      <ul></ul>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        alert("Bạn chưa đăng nhập. Vui lòng đăng nhập trước.");
+        window.location.href = "../login.html";
+        return;
+      }
+
+      fetch("http://localhost:5000/api/student/dashboard", {
+        method: "GET",
+        headers: {
+          "Authorization": "Bearer " + token
+        }
+      })
+        .then(async res => {
+          if (!res.ok) {
+            if (res.status === 401) {
+              alert("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
+              localStorage.removeItem("token");
+              window.location.href = "../login.html";
+              return;
+            }
+            const error = await res.json();
+            throw new Error(error.message || "Lỗi không xác định");
+          }
+          return res.json();
+        })
+        .then(data => {
+          // 👤 Cập nhật tên sinh viên
+          document.querySelector("h1").innerText = `Chào mừng, ${data.fullname} 👋`;
+
+          // 📘 Tiến độ học
+          const progress = document.querySelector(".progress-fill");
+          progress.innerText = `${data.progress || 0}%`;
+          progress.style.width = `${data.progress || 0}%`;
+
+          // 📅 Bài tập đến hạn
+          const assignments = document.querySelectorAll(".card")[1].querySelector("ul");
+          assignments.innerHTML = (data.upcoming_assignments || []).map(a =>
+            `<li>📝 ${a.title} <b style="color:red;">${a.deadline}</b></li>`
+          ).join("") || "<li>Không có bài tập đến hạn.</li>";
+
+          // 🤖 Gợi ý từ AI
+          const aiText = document.querySelectorAll(".card")[2].querySelector("p");
+          aiText.innerText = data.ai_suggestion || "👉 Không có gợi ý nào lúc này.";
+
+          // 🧾 Hoạt động gần đây
+          const activities = document.querySelectorAll(".card")[3].querySelector("ul");
+          activities.innerHTML = (data.recent_activities || []).map(a =>
+            `<li>${a.type}: ${a.detail} (${a.created_at})</li>`
+          ).join("") || "<li>Chưa có hoạt động gần đây.</li>";
+        })
+        .catch(err => {
+          console.error("Lỗi khi tải dashboard:", err);
+          alert("Không thể tải dữ liệu trang chủ.");
+        });
+    });
+  </script>
+
+</body>
+</html>

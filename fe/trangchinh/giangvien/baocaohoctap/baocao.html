@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Báo cáo học tập</title>
+  <link rel="stylesheet" href="../style.css">
+  <style>
+    .progress-bar {
+      background-color: #e0e0e0;
+      border-radius: 10px;
+      height: 25px;
+      width: 100%;
+      overflow: hidden;
+      margin-top: 5px;
+    }
+
+    .progress-bar-inner {
+      background-color: #4caf50;
+      height: 100%;
+      width: 0%;
+      color: #fff;
+      text-align: center;
+      line-height: 25px;
+      transition: width 0.5s;
+    }
+
+    .report {
+      margin-top: 20px;
+      background: #f9f9f9;
+      padding: 20px;
+      border-radius: 10px;
+      font-family: 'Segoe UI', sans-serif;
+    }
+
+    .item {
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="sidebar">
+    <h2>GIẢNG VIÊN</h2>
+    <a href="../index.html">Trang chủ</a>
+    <a href="../quanlikhoahoc/index.html">Quản lý khóa học</a>
+    <a href="../taobaihoc/index.html">Tạo bài học mới</a>
+    <a href="../quanlibaitap/quanlibaitap.html">Quản lý bài tập</a>
+    <a href="../baocaohoctap/baocao.html">Báo cáo học tập</a>
+    <a href="../gop-y/gop_y.html">Góp ý / Đánh giá</a>
+    <a href="../ai-chambai/chambai.html">AI hỗ trợ chấm bài</a>
+    <a href="../thongtingiangvien/thongtin.html">Hồ sơ cá nhân</a>
+  </div>
+
+  <div class="main">
+    <h1>Báo cáo học tập</h1>
+    <div class="report">
+      <div class="item">
+        <strong>Tỉ lệ hoàn thành bài tập:</strong>
+        <div class="progress-bar">
+          <div class="progress-bar-inner" id="completion-bar">0%</div>
+        </div>
+      </div>
+      <div class="item">
+        <strong>Điểm trung bình toàn lớp:</strong>
+        <p class="avg-score" id="avg-score">0.0</p>
+      </div>
+      <div class="item">
+        <strong>Số sinh viên hoàn thành đúng hạn:</strong>
+        <p id="on-time-count">0/0 sinh viên</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const token = localStorage.getItem("token");
+
+      fetch("http://localhost:5000/api/teacher/report-summary", {
+        headers: {
+          "Authorization": "Bearer " + token
+        }
+      })
+      .then(res => res.json())
+      .then(data => {
+        // Tỉ lệ hoàn thành
+        const rate = data.completion_rate || 0;
+        const bar = document.getElementById("completion-bar");
+        bar.style.width = rate + "%";
+        bar.textContent = rate + "%";
+
+        // Điểm trung bình giả lập (trên 10)
+        const avgScore = (rate / 10).toFixed(1);
+        document.getElementById("avg-score").textContent = avgScore;
+
+        // Sinh viên hoàn thành đúng hạn
+        const complete = `${data.on_time_count}/${data.total_students} sinh viên`;
+        document.getElementById("on-time-count").textContent = complete;
+      })
+      .catch(err => {
+        alert("❌ Không thể tải báo cáo học tập");
+        console.error(err);
+      });
+    });
+  </script>
+</body>
+</html>

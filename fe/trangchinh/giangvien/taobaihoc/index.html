@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Tạo bài học mới</title>
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="sidebar">
+    <h2>GIẢNG VIÊN</h2>
+    <a href="../index.html">Trang chủ</a>
+    <a href="../quanlikhoahoc/index.html">Quản lý khóa học</a>
+    <a href="../taobaihoc/index.html">Tạo bài học mới</a>
+    <a href="../quanlibaitap/quanlibaitap.html">Quản lý bài tập</a>
+    <a href="../baocaohoctap/baocao.html">Báo cáo học tập</a>
+    <a href="../gop-y/gop_y.html">Góp ý / Đánh giá</a>
+    <a href="../ai-chambai/chambai.html">AI hỗ trợ chấm bài</a>
+    <a href="../thongtingiangvien/thongtin.html">Hồ sơ cá nhân</a>
+  </div>
+
+  <!-- TẠO BÀI HỌC MỚI -->
+<div class="main">
+  <h1>Tạo bài học mới</h1>
+
+  <form id="lesson-form">
+    <label for="lesson_name">Tên bài học:</label><br>
+    <input type="text" id="lesson_name" name="lesson_name" required><br><br>
+
+    <label for="description">Mô tả:</label><br>
+    <textarea id="description" name="description" rows="4" required></textarea><br><br>
+
+    <label for="course">Thuộc khóa học:</label><br>
+    <select id="course" name="course" required>
+      <option value="">-- Chọn khóa học --</option>
+      <!-- Khóa học sẽ được load từ API -->
+    </select><br><br>
+
+    <button type="submit">Tạo bài học</button>
+  </form>
+
+  <!-- Form upload từ file (riêng biệt) -->
+  <hr>
+  <h3>📂 Tải lên bài học từ file</h3>
+  <form id="upload-form" action="http://localhost:5000/api/teacher/upload-lesson" method="POST" enctype="multipart/form-data">
+    <input type="file" name="file" required />
+    <select name="course_id" id="upload-course-id" required>
+      <option value="">-- Chọn khóa học --</option>
+    </select>
+    <button type="submit">Tải lên bài học</button>
+  </form>
+
+  <!-- Kết quả -->
+  <div id="success-message" class="message" style="display:none">✅ Bài học đã được tạo thành công!</div>
+
+  <div id="lesson-preview" class="lesson-preview" style="display:none">
+    <h3>📘 Bài học vừa tạo:</h3>
+    <p><strong>Tên bài học:</strong> <span id="preview-name"></span></p>
+    <p><strong>Mô tả:</strong> <span id="preview-desc"></span></p>
+    <p><strong>Thuộc khóa học:</strong> <span id="preview-course"></span></p>
+  </div>
+</div>
+
+
+  <script src="script.js"></script>
+</body>
+</html>

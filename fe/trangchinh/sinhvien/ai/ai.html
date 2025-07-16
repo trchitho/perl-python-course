@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>AI Trợ giúp - PY/PL Learn</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="../style.css">
+  <style>
+    .chat-box {
+      margin-left: 300px;
+      padding: 20px;
+    }
+    #chat {
+      background: #f9f9f9;
+      padding: 15px;
+      margin-top: 10px;
+      border-radius: 8px;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    .ai {
+      margin-left: 20px;
+      color: green;
+    }
+    .user {
+      font-weight: bold;
+    }
+    input[type="text"] {
+      padding: 10px;
+      width: 80%;
+    }
+    button {
+      padding: 10px 15px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="sidebar">
+    <h2>PY/PL Learn</h2>
+    <a href="../index.html">🏠 Trang chủ</a>
+    <a href="../khoahoc/index.html">📚 Khóa học</a>
+    <a href="../baitap/baitap.html">📝 Bài tập</a>
+    <a href="../idebaitap/ide.html">💻 IDE Online</a>
+    <a href="#">🤖 AI Trợ giúp</a>
+    <a href="../danhgia/danhgia.html">⭐ Đánh giá</a>
+    <a href="../thongbao/thongbao.html">🔔 Thông báo</a>
+    <a href="../hoso/hoso.html">👤 Hồ sơ</a>
+  </div>
+
+  <div class="chat-box">
+    <h1>🤖 AI Trợ giúp</h1>
+    <p><b>Gợi ý:</b> Bạn có thể hỏi bất kỳ nội dung nào về bài học PERL hoặc PYTHON.</p>
+
+    <input type="text" id="userInput" placeholder="Hỏi gì đó...">
+    <button onclick="sendMessage()">Gửi</button>
+
+    <div id="chat"></div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script>
+    async function sendMessage() {
+      const msg = document.getElementById("userInput").value.trim();
+      if (!msg) return;
+
+      const chatDiv = document.getElementById("chat");
+      chatDiv.innerHTML += `<p class="user">Bạn: ${msg}</p>`;
+
+      try {
+        const res = await fetch("http://localhost:5000/api/ask-ai", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: msg })
+        });
+
+        const data = await res.json();
+        const replyHTML = marked.parse(data.reply);
+        chatDiv.innerHTML += `<div class="ai">AI: ${replyHTML}</div>`;
+        chatDiv.scrollTop = chatDiv.scrollHeight;
+      } catch (err) {
+        chatDiv.innerHTML += `<p style="color:red;">❌ Lỗi kết nối tới AI</p>`;
+      }
+
+      document.getElementById("userInput").value = "";
+    }
+  </script>
+
+</body>
+</html>

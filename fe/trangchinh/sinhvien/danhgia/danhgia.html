@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Đánh giá - PY/PL Learn</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+
+  <div class="sidebar">
+    <h2>PY/PL Learn</h2>
+    <a href="../index.html">🏠 Trang chủ</a>
+    <a href="../khoahoc/index.html">📚 Khóa học</a>
+    <a href="../baitap/baitap.html">📝 Bài tập</a>
+    <a href="../idebaitap/ide.html">💻 IDE Online</a>
+    <a href="../ai/ai.html">🤖 AI Trợ giúp</a>
+    <a href="#">⭐ Đánh giá</a>
+    <a href="../thongbao/thongbao.html">🔔 Thông báo</a>
+    <a href="../hoso/hoso.html">👤 Hồ sơ</a>
+  </div>
+
+  <div class="main">
+    <h2>📋 Gửi đánh giá của bạn</h2>
+  <select id="course-select">
+    <option disabled selected>-- Chọn khóa học --</option>
+  </select>
+
+  <textarea id="message" rows="4" placeholder="Viết đánh giá của bạn..." style="width:100%; margin-top:10px;"></textarea>
+  <button onclick="submitFeedback()" style="margin-top:10px;">Gửi đánh giá</button>
+  <div id="response" style="margin-top:10px; color:green;"></div>
+  </div>
+
+</body>
+<script src="danhgia.js" defer></script>
+</html>

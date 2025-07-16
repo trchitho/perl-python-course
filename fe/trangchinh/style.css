@@ -1,0 +1,89 @@
+body {
+      margin: 0;
+      font-family: "Segoe UI", Arial, sans-serif;
+      background-color: #f1f1f1;
+    }
+
+    /* Header */
+    .topnav {
+      overflow: hidden;
+      background-color: #282A35;
+    }
+
+    .topnav a {
+      float: left;
+      display: block;
+      color: #f1f1f1;
+      text-align: center;
+      padding: 14px 16px;
+      text-decoration: none;
+      font-size: 17px;
+    }
+
+    .topnav a:hover {
+      background-color: #575757;
+      color: white;
+    }
+
+    .topnav a.login {
+      float: right;
+      background-color: #04AA6D;
+      border-radius: 4px;
+    }
+
+    .hero {
+      padding: 60px 20px;
+      text-align: center;
+      background-color: #D9EEE1;
+    }
+
+    .hero h1 {
+      font-size: 36px;
+      margin-bottom: 10px;
+    }
+
+    .hero p {
+      font-size: 18px;
+      color: #333;
+    }
+
+    .section {
+      padding: 40px 20px;
+      text-align: center;
+    }
+
+    .card-container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 20px;
+      margin-top: 20px;
+    }
+
+    .card {
+      background-color: white;
+      padding: 20px;
+      width: 280px;
+      border-radius: 6px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .card h3 {
+      margin-bottom: 10px;
+      color: #04AA6D;
+    }
+
+    footer {
+      text-align: center;
+      padding: 20px;
+      background-color: #282A35;
+      color: white;
+      margin-top: 40px;
+    }
+
+    @media (max-width: 768px) {
+      .card-container {
+        flex-direction: column;
+        align-items: center;
+      }
+    }
