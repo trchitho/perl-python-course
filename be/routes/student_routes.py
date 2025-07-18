@@ -15,7 +15,7 @@ from models.activity_model import Activity
 student_bp = Blueprint("student", __name__)
 
 @student_bp.route("/dashboard", methods=["GET", "OPTIONS"])
-@cross_origin(origins="http://127.0.0.1:5501", supports_credentials=True)
+@cross_origin(origins="http://127.0.0.1:5500", supports_credentials=True)
 def student_dashboard():
     if request.method == "OPTIONS": return '', 204
     verify_jwt_in_request()
@@ -56,21 +56,21 @@ def student_dashboard():
     }), 200
 
 @student_bp.route("/enroll", methods=["POST", "OPTIONS"])
-@cross_origin(origins="http://127.0.0.1:5501", supports_credentials=True)
+@cross_origin(origins="http://127.0.0.1:5500", supports_credentials=True)
 def enroll_course():
     if request.method == "OPTIONS": return '', 204
     verify_jwt_in_request()
     return enroll_in_course()
 
 @student_bp.route("/unenroll", methods=["POST", "OPTIONS"])
-@cross_origin(origins="http://127.0.0.1:5501", supports_credentials=True)
+@cross_origin(origins="http://127.0.0.1:5500", supports_credentials=True)
 def unenroll_course():
     if request.method == "OPTIONS": return '', 204
     verify_jwt_in_request()
     return unenroll_from_course()
 
 @student_bp.route("/all-courses", methods=["GET", "OPTIONS"])
-@cross_origin(origins="http://127.0.0.1:5501", supports_credentials=True)
+@cross_origin(origins="http://127.0.0.1:5500", supports_credentials=True)
 def all_courses_with_enrollment_status():
     if request.method == "OPTIONS": return '', 204
     verify_jwt_in_request()
@@ -96,14 +96,14 @@ def all_courses_with_enrollment_status():
     return jsonify(result), 200
 
 @student_bp.route("/courses", methods=["GET", "OPTIONS"])
-@cross_origin(origins="http://127.0.0.1:5501", supports_credentials=True)
+@cross_origin(origins="http://127.0.0.1:5500", supports_credentials=True)
 def view_enrolled_courses():
     if request.method == "OPTIONS": return '', 204
     verify_jwt_in_request()
     return get_enrolled_courses()
 
 @student_bp.route("/course-detail/<int:course_id>", methods=["GET", "OPTIONS"])
-@cross_origin(origins="http://127.0.0.1:5501", supports_credentials=True)
+@cross_origin(origins="http://127.0.0.1:5500", supports_credentials=True)
 def get_course_detail(course_id):
     if request.method == "OPTIONS": return '', 204
     verify_jwt_in_request()
@@ -127,7 +127,7 @@ def get_course_detail(course_id):
     }), 200
 
 @student_bp.route("/lesson/<int:lesson_id>", methods=["GET", "OPTIONS"])
-@cross_origin(origins="http://127.0.0.1:5501", supports_credentials=True)
+@cross_origin(origins="http://127.0.0.1:5500", supports_credentials=True)
 def get_lesson_detail(lesson_id):
     if request.method == "OPTIONS": return '', 204
     verify_jwt_in_request()
@@ -143,7 +143,7 @@ def get_lesson_detail(lesson_id):
     }), 200
 
 @student_bp.route("/assignments", methods=["GET", "OPTIONS"])
-@cross_origin(origins="http://127.0.0.1:5501", supports_credentials=True)
+@cross_origin(origins="http://127.0.0.1:5500", supports_credentials=True)
 def view_assignments():
     if request.method == "OPTIONS": return '', 204
     verify_jwt_in_request()
@@ -170,35 +170,35 @@ def view_assignments():
     return jsonify(result), 200
 
 @student_bp.route("/progress", methods=["GET", "OPTIONS"])
-@cross_origin(origins="http://127.0.0.1:5501", supports_credentials=True)
+@cross_origin(origins="http://127.0.0.1:5500", supports_credentials=True)
 def view_progress():
     if request.method == "OPTIONS": return '', 204
     verify_jwt_in_request()
     return get_progress()
 
 @student_bp.route("/feedback", methods=["POST", "OPTIONS"])
-@cross_origin(origins="http://127.0.0.1:5501", supports_credentials=True)
+@cross_origin(origins="http://127.0.0.1:5500", supports_credentials=True)
 def post_feedback():
     if request.method == "OPTIONS": return '', 204
     verify_jwt_in_request()
     return submit_feedback()
 
 @student_bp.route("/activities", methods=["GET", "OPTIONS"])
-@cross_origin(origins="http://127.0.0.1:5501", supports_credentials=True)
+@cross_origin(origins="http://127.0.0.1:5500", supports_credentials=True)
 def view_activities():
     if request.method == "OPTIONS": return '', 204
     verify_jwt_in_request()
     return recent_activities()
 
 @student_bp.route("/profile", methods=["GET", "OPTIONS"])
-@cross_origin(origins="http://127.0.0.1:5501", supports_credentials=True)
+@cross_origin(origins="http://127.0.0.1:5500", supports_credentials=True)
 def student_profile():
     if request.method == "OPTIONS": return '', 204
     verify_jwt_in_request()
     return get_student_profile()
 
 @student_bp.route("/notifications", methods=["GET"])
-@cross_origin(origins="http://127.0.0.1:5501", supports_credentials=True)
+@cross_origin(origins="http://127.0.0.1:5500", supports_credentials=True)
 def get_notifications():
     verify_jwt_in_request()
     current_user_id = get_jwt_identity()
