@@ -3,6 +3,15 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from flask_cors import cross_origin
 from datetime import datetime
 from sqlalchemy import func
+import os
+import uuid
+from werkzeug.utils import secure_filename
+from flask import  current_app
+from flask_jwt_extended import verify_jwt_in_request
+
+
+
+UPLOAD_FOLDER = 'uploads'  # Thư mục lưu tạm
 
 from models.enrollment_model import Enrollment
 from models.course_model import Course
@@ -13,13 +22,21 @@ from models.report_model import Report
 from models.user_model import User
 from controllers.lesson_controller import add_lesson_from_file
 from extensions import db
+teacher_bp = Blueprint("teacher", __name__, url_prefix="/api/teacher")
 
-teacher_bp = Blueprint("teacher", __name__)
-
-@teacher_bp.route("/home", methods=["GET"])
-@jwt_required()
+@teacher_bp.route("/home", methods=["GET", "OPTIONS"])
 def teacher_homepage():
-    teacher_id = get_jwt_identity()  # lấy từ token
+    if request.method == "OPTIONS":
+        # ✅ Trả về đầy đủ CORS headers cho preflight
+        response = jsonify({"message": "Preflight OK"})
+        response.headers.add("Access-Control-Allow-Origin", "*")
+        response.headers.add("Access-Control-Allow-Headers", "Content-Type, Authorization")
+        response.headers.add("Access-Control-Allow-Methods", "GET, OPTIONS")
+        return response
+
+    # ✅ GET request phải xác thực
+    verify_jwt_in_request()
+    teacher_id = get_jwt_identity()
 
     courses = db.session.query(
         Course.id,
@@ -39,17 +56,35 @@ def teacher_homepage():
             "feedback": feedback.message if feedback else "Chưa có góp ý"
         })
 
-    return jsonify(result)
+    response = jsonify(result)
+    response.headers.add("Access-Control-Allow-Origin", "*")  # ✅ Cho phép frontend truy cập
+    return response
 
 
-# Tạo khóa học
+# ---------------------- CORS Preflight (OPTIONS) ----------------------
+
+@teacher_bp.route("/courses", methods=["OPTIONS"])
+@teacher_bp.route("/courses/<int:course_id>", methods=["OPTIONS"])
+@cross_origin()
+def courses_options(course_id=None):
+    """
+    Đáp ứng các preflight OPTIONS request để tránh lỗi CORS 401/415.
+    Không nên gọi get_jwt_identity() ở đây.
+    """
+    return jsonify({"message": "CORS Preflight OK"}), 200
+
+
+# ---------------------- Tạo khóa học ----------------------
+
 @teacher_bp.route("/courses", methods=["POST"])
 @jwt_required()
 def create_course():
-    data = request.json
     user_id = get_jwt_identity()
+    data = request.get_json()
 
-    # Kiểm tra tên trùng với cùng giáo viên
+    if not data or "name" not in data:
+        return jsonify({"message": "Thiếu tên khóa học!"}), 400
+
     existed = Course.query.filter_by(name=data["name"], teacher_id=user_id).first()
     if existed:
         return jsonify({"message": "Tên khóa học đã tồn tại!"}), 400
@@ -61,24 +96,56 @@ def create_course():
     )
     db.session.add(new_course)
     db.session.commit()
+
     return jsonify({"message": "Tạo khóa học thành công!"}), 201
 
 
-# Lấy danh sách khóa học của giảng viên
+# ---------------------- Danh sách khóa học của giáo viên ----------------------
+
 @teacher_bp.route("/courses", methods=["GET"])
 @jwt_required()
 def list_courses():
     user_id = get_jwt_identity()
     courses = Course.query.filter_by(teacher_id=user_id).all()
-    course_list = [{
+
+    result = [{
         "id": c.id,
         "name": c.name,
         "description": c.description,
         "created_at": c.created_at.strftime("%Y-%m-%d %H:%M:%S") if c.created_at else None
     } for c in courses]
-    return jsonify({"courses": course_list}), 200
 
-# Cập nhật khóa học
+    return jsonify({"courses": result}), 200
+
+
+# ---------------------- Chi tiết khóa học + Danh sách bài học ----------------------
+
+@teacher_bp.route("/courses/<int:course_id>", methods=["GET"])
+@jwt_required()
+def course_detail(course_id):
+    user_id = get_jwt_identity()
+    course = Course.query.filter_by(id=course_id, teacher_id=user_id).first()
+    if not course:
+        return jsonify({"message": "Không tìm thấy khóa học!"}), 404
+
+    lessons = Lesson.query.filter_by(course_id=course_id).all()
+    lesson_list = [{
+        "id": l.id,
+        "title": l.title,
+        "content": l.content
+    } for l in lessons]
+
+    return jsonify({
+        "id": course.id,
+        "name": course.name,
+        "description": course.description,
+        "created_at": course.created_at.isoformat() if course.created_at else None,
+        "lessons": lesson_list
+    })
+
+
+# ---------------------- Cập nhật khóa học ----------------------
+
 @teacher_bp.route("/courses/<int:course_id>", methods=["PUT"])
 @jwt_required()
 def update_course(course_id):
@@ -86,13 +153,20 @@ def update_course(course_id):
     course = Course.query.filter_by(id=course_id, teacher_id=user_id).first()
     if not course:
         return jsonify({"message": "Không tìm thấy khóa học!"}), 404
-    data = request.json
+
+    data = request.get_json()
+    if not data:
+        return jsonify({"message": "Không có dữ liệu để cập nhật!"}), 400
+
     course.name = data.get("name", course.name)
     course.description = data.get("description", course.description)
     db.session.commit()
-    return jsonify({"message": "Cập nhật khóa học thành công!"})
 
-# Xoá khóa học
+    return jsonify({"message": "Cập nhật khóa học thành công!"}), 200
+
+
+# ---------------------- Xoá khóa học ----------------------
+
 @teacher_bp.route("/courses/<int:course_id>", methods=["DELETE"])
 @jwt_required()
 def delete_course(course_id):
@@ -100,31 +174,12 @@ def delete_course(course_id):
     course = Course.query.filter_by(id=course_id, teacher_id=user_id).first()
     if not course:
         return jsonify({"message": "Không tìm thấy khóa học!"}), 404
+
     db.session.delete(course)
     db.session.commit()
-    return jsonify({"message": "Xóa khóa học thành công!"})
 
-# Chi tiết khóa học và bài học
-@teacher_bp.route("/courses/<int:course_id>", methods=["GET"])
-@jwt_required()
-def course_detail(course_id):
-    user_id = get_jwt_identity()
-    course = Course.query.filter_by(id=course_id, teacher_id=user_id).first()
-    if not course:
-        return jsonify({"message": "Không tìm thấy khóa học"}), 404
-    lessons = Lesson.query.filter_by(course_id=course.id).all()
-    lesson_list = [{
-        "id": l.id,
-        "title": l.title,
-        "content": l.content
-    } for l in lessons]
-    return jsonify({
-        "id": course.id,
-        "name": course.name,
-        "description": course.description,
-        "created_at": course.created_at.isoformat() if course.created_at else None,
-        "lessons": lesson_list
-    }), 200
+    return jsonify({"message": "Xóa khóa học thành công!"}), 200
+
 
 # Tạo bài học
 @teacher_bp.route("/lessons", methods=["POST"])
@@ -140,12 +195,158 @@ def create_lesson():
     db.session.commit()
     return jsonify({"message": "Tạo bài học thành công!"}), 201
 
-# Upload bài học từ file
-@teacher_bp.route("/upload-lesson", methods=["POST"])
-@cross_origin(origins="http://127.0.0.1:5500")
+# Lấy chi tiết 1 bài học
+@teacher_bp.route("/lessons/<int:lesson_id>", methods=["GET"])
 @jwt_required()
-def upload_lesson():
-    return add_lesson_from_file()
+def lesson_detail(lesson_id):
+    user_id = get_jwt_identity()
+    lesson = Lesson.query.get(lesson_id)
+    course = Course.query.filter_by(id=lesson.course_id, teacher_id=user_id).first()
+
+    if not lesson or not course:
+        return jsonify({"message": "Không tìm thấy bài học"}), 404
+
+    return jsonify({
+        "id": lesson.id,
+        "title": lesson.title,
+        "content": lesson.content
+    }), 200
+
+# Cập nhật nội dung bài học
+@teacher_bp.route("/lessons/<int:lesson_id>", methods=["PUT"])
+@jwt_required()
+def update_lesson(lesson_id):
+    data = request.json
+    user_id = get_jwt_identity()
+
+    lesson = Lesson.query.get(lesson_id)
+    course = Course.query.filter_by(id=lesson.course_id, teacher_id=user_id).first()
+
+    if not lesson or not course:
+        return jsonify({"message": "Không tìm thấy bài học"}), 404
+
+    lesson.title = data.get("title", lesson.title)
+    lesson.content = data.get("content", lesson.content)
+    db.session.commit()
+
+    return jsonify({"message": "Cập nhật bài học thành công!"}), 200
+
+# Xoá bài học
+@teacher_bp.route("/lessons/<int:lesson_id>", methods=["DELETE"])
+@jwt_required()
+def delete_lesson(lesson_id):
+    user_id = get_jwt_identity()
+
+    lesson = Lesson.query.get(lesson_id)
+    if not lesson:
+        return jsonify({"message": "Không tìm thấy bài học"}), 404
+
+    # Kiểm tra quyền sở hữu
+    course = Course.query.filter_by(id=lesson.course_id, teacher_id=user_id).first()
+    if not course:
+        return jsonify({"message": "Bạn không có quyền xóa bài học này"}), 403
+
+    db.session.delete(lesson)
+    db.session.commit()
+
+    return jsonify({"message": "Xóa bài học thành công"}), 200
+
+# Tải lên bài học từ file
+from flask_cors import CORS
+CORS(teacher_bp, supports_credentials=True, origins=["http://127.0.0.1:5500" , "http://localhost:5500"])
+@teacher_bp.route("/upload-lesson-from-file", methods=["POST"]) 
+@cross_origin(origins=["http://127.0.0.1:5500", "http://localhost:5500"], supports_credentials=True)
+@jwt_required()
+def add_lesson_from_file():
+    if 'file' not in request.files:
+        return jsonify({"error": "Không tìm thấy file"}), 400
+
+    file = request.files['file']
+    course_id = request.form.get('course_id')
+
+    if file.filename == '':
+        return jsonify({"error": "File rỗng"}), 400
+
+    if not course_id:
+        return jsonify({"error": "Thiếu course_id"}), 400
+
+    filename = secure_filename(file.filename)
+    filepath = os.path.join(UPLOAD_FOLDER, filename)
+    file_ext = os.path.splitext(filename)[1].lower()
+    ALLOWED_EXTENSIONS = {'.txt', '.pdf', '.docx'}
+
+    if file_ext not in ALLOWED_EXTENSIONS:
+        return jsonify({"error": "Chỉ hỗ trợ file .txt, .pdf, .docx"}), 400
+
+    # Lưu file vào ổ đĩa
+    try:
+        os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+        file.save(filepath)
+    except Exception as e:
+        return jsonify({"error": f"Lỗi khi lưu file: {str(e)}"}), 500
+
+    # Đọc nội dung file
+    try:
+        if file_ext == '.txt':
+            with open(filepath, 'r', encoding='utf-8') as f:
+                content = f.read()
+
+        elif file_ext == '.pdf':
+            from PyPDF2 import PdfReader
+            reader = PdfReader(filepath)
+            content = '\n'.join([page.extract_text() or "" for page in reader.pages])
+
+        elif file_ext == '.docx':
+            import docx
+            doc = docx.Document(filepath)
+            content = '\n'.join([p.text for p in doc.paragraphs])
+
+        # Tạo đối tượng Lesson và lưu vào DB
+        new_lesson = Lesson(
+            title=filename,
+            content=content,
+            course_id=int(course_id)
+        )
+        db.session.add(new_lesson)
+        db.session.commit()
+
+        return jsonify({
+            "message": "Tải lên bài học thành công",
+            "lesson_id": new_lesson.id,
+            "title": new_lesson.title,
+            "content": content
+        }), 200
+
+    except Exception as e:
+        return jsonify({"error": f"Lỗi khi xử lý file: {str(e)}"}), 500
+
+
+from flask_cors import CORS
+
+# Sau khi tạo blueprint
+CORS(teacher_bp, supports_credentials=True, origins=["http://127.0.0.1:5500"])
+@teacher_bp.route("/upload-image", methods=["POST"])
+def upload_image():
+    if 'image' not in request.files:
+        return jsonify({"error": "No image part"}), 400
+
+    image = request.files['image']
+    if image.filename == '':
+        return jsonify({"error": "No selected file"}), 400
+
+    # Tạo tên file an toàn
+    filename = secure_filename(image.filename)
+    ext = os.path.splitext(filename)[1]
+    unique_name = f"{uuid.uuid4().hex}{ext}"
+    
+    # Lưu ảnh vào thư mục uploads/
+    upload_folder = current_app.config.get("UPLOAD_FOLDER", "uploads")
+    filepath = os.path.join(upload_folder, unique_name)
+    image.save(filepath)
+
+    # Tạo URL trả về cho FE
+    image_url = f"http://localhost:5000/uploads/{unique_name}"
+    return jsonify({"image_url": image_url}), 200
 
 # Tạo bài tập
 @teacher_bp.route("/assignments", methods=["POST"])

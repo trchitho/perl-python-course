@@ -17,7 +17,7 @@ document.addEventListener("DOMContentLoaded", () => {
         <h3>${course.name}</h3>
         <p>${course.description || "Không có mô tả"}</p>
         <small>Ngày tạo: ${course.created_at || "Không rõ"}</small><br>
-        <button onclick="location.href='chi-tiet.html?course_id=${course.id}'">Chi tiết</button>
+        <button onclick="location.href='dsbaihoc.html?course_id=${course.id}'">Danh sách</button>
         <button onclick="editCourse(${course.id})">Chỉnh sửa</button>
         <button onclick="deleteCourse(${course.id})">Xoá</button>
       `;
