@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Teacher Lessons</title>
+  <link rel="stylesheet" href="/frontend/assets/fonts.css?v=20251108-1">
+  <link rel="stylesheet" href="/frontend/assets/responsive.css?v=20251108-1">
+  <link rel="stylesheet" href="/frontend/assets/theme.css?v=20251108-1">
+  <script defer src="/frontend/assets/components.js?v=20251108-1"></script>
+</head>
+<body class="w3-has-top">
+  <div data-component="Navbar"></div>
+  <div style="display:flex;">
+    <div data-component="Sidebar"></div>
+    <main class="w3-container w3-section" style="flex:1;max-width:1120px;">
+      <section class="section-head"><div>
+        <h1 class="section-title">Lesson Management</h1>
+        <p class="section-sub">Upload and order lessons</p>
+      </div></section>
+
+      <section class="card" style="margin-bottom:16px;">
+        <h3>New Lesson</h3>
+        <form id="fLesson">
+          <input id="lsTitle" placeholder="Lesson title" style="width:100%;padding:10px;margin:6px 0;">
+          <textarea id="lsDesc" placeholder="Description (optional)" style="width:100%;padding:10px;margin:6px 0;min-height:80px"></textarea>
+          <textarea id="lsContent" placeholder="Lesson content (optional)" style="width:100%;padding:10px;margin:6px 0;min-height:120px"></textarea>
+          <input id="lsVideo" placeholder="Video URL (or upload later)" style="width:100%;padding:10px;margin:6px 0;">
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="w3-button" type="submit">Add Lesson</button>
+            <span id="lsMsg" style="color:#666"></span>
+          </div>
+        </form>
+      </section>
+
+      <section>
+        <h3>Lessons</h3>
+        <div id="lsList" class="card-grid"></div>
+      </section>
+    </main>
+  </div>
+  <div data-component="Footer"></div>
+  <script type="module">
+    import { listLessons, createLesson, reorderLessons, updateLesson, deleteLesson, listTeacherCourses } from '/frontend/services/teacherAPI.js';
+    const token = localStorage.getItem('token');
+    const courseId = new URLSearchParams(location.search).get('course_id');
+    const lsList = document.getElementById('lsList');
+    const lsContent = document.getElementById('lsContent');
+
+    (async () => {
+      if (!courseId) {
+        const pick = document.createElement('section');
+        pick.className = 'card';
+        pick.innerHTML = `<h3>Select Course</h3><div id="coursePick">Loading...</div>`;
+        const mainEl = document.querySelector('main');
+        mainEl.insertBefore(pick, mainEl.firstChild.nextSibling);
+        try {
+          const cs = await listTeacherCourses(token);
+          document.getElementById('coursePick').innerHTML = (cs||[]).map(c=>
+            `<a class="w3-button w3-outline" style="margin:4px" href="?course_id=${c.id}">${c.name||('Course #'+c.id)}</a>`
+          ).join('') || '<div>No courses</div>';
+        } catch(e){ const cp=document.getElementById('coursePick'); if(cp) cp.textContent='Failed to load courses'; }
+        lsList.innerHTML = "<div class='card'>Select a course above to manage its lessons.</div>";
+      } else {
+        try{
+          const cs = await listTeacherCourses(token);
+          const c = (cs||[]).find(x=>String(x.id)===String(courseId));
+          if(c){ document.querySelector('.section-title').textContent = `Lesson Management — ${c.name}`; }
+        }catch(e){}
+      }
+    })();
+
+    async function refresh(){
+      if(!courseId) return;
+      try{
+        const data = await listLessons(token, courseId);
+        lsList.innerHTML = (data||[]).map((l,i)=>`<div class='card'>
+          <div style='display:flex;justify-content:space-between;gap:12px;align-items:flex-start;'>
+            <div style='flex:1'>
+              <h4 style='margin:0'>${l.title||'Lesson '+(i+1)}</h4>
+              <div style='color:#555;margin-bottom:6px;'>${(l.description||'').slice(0,160)}</div>
+              <pre style='white-space:pre-wrap;background:#f9fafb;border:1px solid #e5e7eb;padding:8px;border-radius:6px;max-height:180px;overflow:auto;'>${(l.content||'Chưa có nội dung').slice(0,2000)}</pre>
+              ${l.video_url ? `<div style='margin-top:6px'><a class='w3-button w3-outline' href='${l.video_url}' target='_blank'>View Video</a></div>` : ''}
+            </div>
+            <div style='display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;'>
+              <button class='w3-button w3-outline' data-act='up' data-idx='${i}' title='Move up'>▲</button>
+              <button class='w3-button w3-outline' data-act='down' data-idx='${i}' title='Move down'>▼</button>
+              <button class='w3-button w3-outline' data-act='edit' data-id='${l.id}'>Edit</button>
+              <button class='w3-button w3-danger' data-act='del' data-id='${l.id}'>Delete</button>
+            </div>
+          </div>
+        </div>`).join('') || "<div class='card'>No lessons yet.</div>";
+        lsList.querySelectorAll('button[data-act]').forEach(btn=>{
+          btn.addEventListener('click', async ()=>{
+            const act = btn.getAttribute('data-act');
+            const idx = Number(btn.getAttribute('data-idx'));
+            if(act==='up' || act==='down'){
+              const order = Array.from({length:(data||[]).length}, (_,i)=>i);
+              if(act==='up' && idx>0){ [order[idx-1], order[idx]] = [order[idx], order[idx-1]]; }
+              if(act==='down' && idx<order.length-1){ [order[idx+1], order[idx]] = [order[idx], order[idx+1]]; }
+              try{ await reorderLessons(token, courseId, order); await refresh(); } catch(e){ alert('Reorder failed'); }
+              return;
+            }
+            if(act==='edit'){
+              const id = btn.getAttribute('data-id');
+              const cur = (data||[]).find(x=>String(x.id)===String(id)) || {};
+              const title = prompt('Title', cur.title||''); if(title===null) return;
+              const desc = prompt('Description', cur.description||''); if(desc===null) return;
+              const content = prompt('Content', cur.content||''); if(content===null) return;
+              const video = prompt('Video URL', cur.video_url||''); if(video===null) return;
+              try{ await updateLesson(token, id, { title, description: desc, content, video_url: video }); await refresh(); }catch(e){ alert('Update failed'); }
+              return;
+            }
+            if(act==='del'){
+              const id = btn.getAttribute('data-id');
+              if(!confirm('Delete this lesson?')) return;
+              try{ await deleteLesson(token, id); await refresh(); }catch(e){ alert('Delete failed'); }
+              return;
+            }
+          });
+        });
+      }catch(e){ lsList.innerHTML = "<div class='card'>Failed to load lessons</div>"; }
+    }
+    document.getElementById('fLesson').addEventListener('submit', async (e)=>{
+      e.preventDefault(); if(!courseId) return;
+      const body = { title: lsTitle.value.trim(), description: lsDesc.value.trim(), content: lsContent.value.trim(), video_url: lsVideo.value.trim() };
+      try{ await createLesson(token, courseId, body); lsMsg.textContent='Added'; lsContent.value=''; lsDesc.value=''; lsTitle.value=''; lsVideo.value=''; await refresh(); }
+      catch(err){ lsMsg.textContent='Add failed'; }
+    });
+    refresh();
+  </script>
+</body>
+</html>
+
+
+

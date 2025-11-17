@@ -1,0 +1,51 @@
+﻿/* Global responsive utilities using max-width breakpoints */
+
+/* Media elements scale */
+img, video, iframe { max-width: 100%; height: auto; }
+
+/* Provide base topnav layout if not defined */
+.topnav { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 10px 16px; }
+.topnav a { text-decoration: none; padding: 8px 12px; }
+
+/* Card containers and grids */
+.card-container { display: flex; gap: 20px; flex-wrap: wrap; }
+.instructor-grid { display: grid; grid-template-columns: repeat(3, minmax(220px, 1fr)); gap: 20px; }
+
+/* XL â‰¤ 1200px */
+@media (max-width: 1200px) {
+  .hero h1 { font-size: 32px; }
+  .hero-image { width: 75%; }
+  .card { max-width: 680px; margin-left: auto; margin-right: auto; }
+}
+
+/* LG â‰¤ 992px */
+@media (max-width: 992px) {
+  .topnav { flex-direction: column; gap: 8px; align-items: flex-start; }
+  .topnav a { padding: 6px 10px; }
+  .hero { padding: 60px 16px 32px; }
+  .hero-image { width: 85%; max-width: 640px; }
+  .card-container { gap: 16px; }
+  .instructor-grid { grid-template-columns: repeat(2, minmax(220px, 1fr)); }
+  .register-btn { padding: 10px 22px; font-size: 1rem; }
+}
+
+/* MD â‰¤ 768px */
+@media (max-width: 768px) {
+  .section { padding: 28px 16px; }
+  .hero h1 { font-size: 28px; }
+  .hero p { font-size: 16px; }
+  .card { padding: 16px; }
+  .course-grid, .card-container { flex-direction: column; align-items: stretch; }
+  .instructor-grid { grid-template-columns: 1fr; }
+}
+
+/* SM â‰¤ 576px */
+@media (max-width: 576px) {
+  .topnav a { font-size: 15px; }
+  .hero h1 { font-size: 24px; }
+  .hero-image { width: 95%; max-width: 460px; }
+  .footer-content { text-align: center; }
+}
+
+
+

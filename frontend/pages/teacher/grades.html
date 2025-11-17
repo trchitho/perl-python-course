@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Teacher Gradebook</title>
+  <link rel="stylesheet" href="/frontend/assets/fonts.css?v=20251108-1">
+  <link rel="stylesheet" href="/frontend/assets/responsive.css?v=20251108-1">
+  <link rel="stylesheet" href="/frontend/assets/theme.css?v=20251108-1">
+  <style>
+    .grade-summary {display:flex;gap:16px;flex-wrap:wrap;margin-top:4px;}
+    .grade-pill{display:inline-flex;align-items:center;justify-content:center;padding:4px 10px;border-radius:999px;font-weight:600;font-size:14px;background:#eef2ff;color:#1e3a8a;}
+    .grade-pill.hot{background:#fee2e2;color:#b91c1c;}
+  </style>
+  <script defer src="/frontend/assets/components.js?v=20251108-1"></script>
+</head>
+<body class="w3-has-top">
+  <div data-component="Navbar"></div>
+  <div style="display:flex;">
+    <div data-component="Sidebar"></div>
+    <main class="w3-container w3-section" style="flex:1;max-width:1200px;">
+      <section class="section-head">
+        <div>
+          <h1 class="section-title">Gradebook</h1>
+          <p class="section-sub">Xem điểm quiz của từng học viên theo khóa học và tiết học</p>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="grid-2" style="gap:16px;align-items:flex-end;">
+          <label style="display:flex;flex-direction:column;gap:6px;">
+            <span>Khóa học</span>
+            <select id="courseSelect" style="padding:10px;border:1px solid #d1d5db;border-radius:6px;">
+              <option value="">Đang tải danh sách khóa học...</option>
+            </select>
+          </label>
+          <div>
+            <div style="color:#6b7280;font-size:14px;">Tổng quan</div>
+            <div id="summary" class="grade-summary"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card" id="filterWrap" style="display:none;">
+        <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;">
+          <label style="display:flex;flex-direction:column;gap:6px;">
+            <span>Tiết học</span>
+            <select id="lessonFilter" style="padding:10px;border:1px solid #d1d5db;border-radius:6px;">
+              <option value="">Tất cả</option>
+            </select>
+          </label>
+          <label style="display:flex;flex-direction:column;gap:6px;">
+            <span>Tìm kiếm</span>
+            <input id="studentFilter" placeholder="Tên học viên hoặc quiz..." style="padding:10px;border:1px solid #d1d5db;border-radius:6px;">
+          </label>
+          <button id="btnExport" class="w3-button w3-outline" type="button">Xuất CSV</button>
+        </div>
+      </section>
+
+      <section>
+        <div id="gradeList" class="card" style="min-height:180px;overflow:auto;">
+          <div>Chọn một khóa học để xem điểm.</div>
+        </div>
+      </section>
+    </main>
+  </div>
+  <div data-component="Footer"></div>
+
+  <script type="module">
+    import { listTeacherCourses, listCourseScores, listLessons } from '/frontend/services/teacherAPI.js';
+    const token = localStorage.getItem('token');
+    const params = new URLSearchParams(location.search);
+    const courseSelect = document.getElementById('courseSelect');
+    const lessonFilter = document.getElementById('lessonFilter');
+    const studentFilter = document.getElementById('studentFilter');
+    const gradeList = document.getElementById('gradeList');
+    const summary = document.getElementById('summary');
+    const filterWrap = document.getElementById('filterWrap');
+    const btnExport = document.getElementById('btnExport');
+
+    let courses = [];
+    let lessons = [];
+    let gradeData = null;
+
+    function setSummary(data){
+      if(!data){
+        summary.innerHTML = `<div style="color:#9ca3af">Không có dữ liệu</div>`;
+        return;
+      }
+      const cards = [
+        { label: 'Học viên', value: data.students || 0 },
+        { label: 'Quiz', value: data.quizzes || 0 },
+        { label: 'Lần nộp', value: data.attempts || 0 },
+        { label: 'Điểm TB', value: (data.average_score ?? 0).toFixed(2) }
+      ];
+      summary.innerHTML = cards.map(c=>
+        `<div style="padding:8px 12px;border-radius:10px;border:1px solid #e5e7eb;min-width:110px;">
+           <div style="font-size:12px;color:#6b7280;">${c.label}</div>
+           <div style="font-size:20px;font-weight:600;">${c.value}</div>
+         </div>`
+      ).join('');
+    }
+
+    function populateLessonFilter(){
+      const opts = ['<option value="">Tất cả tiết học</option>'];
+      lessons.forEach(l=>{
+        opts.push(`<option value="${l.id}">${l.title || ('Lesson #' + l.id)}</option>`);
+      });
+      const hasLoose = (gradeData?.results || []).some(r => !r.lesson_id);
+      if(hasLoose){
+        opts.push('<option value="__none">Không gắn tiết học</option>');
+      }
+      lessonFilter.innerHTML = opts.join('');
+    }
+
+    function fmtDate(val){
+      if(!val) return '-';
+      const d = new Date(val);
+      if(isNaN(d)) return val;
+      return d.toLocaleString();
+    }
+
+    function renderResults(){
+      const rows = (gradeData?.results || []);
+      if(!rows.length){
+        gradeList.innerHTML = "<div class='card'>Chưa có lượt nộp nào cho khóa học này.</div>";
+        return;
+      }
+      const kw = (studentFilter.value || '').trim().toLowerCase();
+      const lessonVal = lessonFilter.value;
+      const filtered = rows.filter(r=>{
+        if(lessonVal){
+          if(lessonVal === '__none'){
+            if(r.lesson_id) return false;
+          } else if(String(r.lesson_id) !== lessonVal){
+            return false;
+          }
+        }
+        if(!kw) return true;
+        const blob = [
+          r.user_name || '',
+          r.quiz_title || '',
+          r.lesson_title || '',
+          r.user_id,
+          r.quiz_id
+        ].join(' ').toLowerCase();
+        return blob.includes(kw);
+      });
+      if(!filtered.length){
+        gradeList.innerHTML = "<div class='card'>Không tìm thấy kết quả phù hợp với bộ lọc hiện tại.</div>";
+        return;
+      }
+      const tableRows = filtered.map(item=>`
+        <tr>
+          <td>
+            <div style="font-weight:600;">${item.user_name || ('User #' + item.user_id)}</div>
+            <div style="color:#6b7280;font-size:12px;">ID: ${item.user_id ?? '-'}</div>
+          </td>
+          <td>
+            <div>${item.quiz_title || ('Quiz #' + item.quiz_id)}</div>
+            <div style="color:#6b7280;font-size:12px;">Mã: ${item.quiz_id ?? '-'}</div>
+          </td>
+          <td>${item.lesson_title || (item.lesson_id ? ('Lesson #' + item.lesson_id) : 'Chưa gắn')}</td>
+          <td><span class="grade-pill ${item.score >= 80 ? 'hot' : ''}">${item.score.toFixed(2)}</span></td>
+          <td>${fmtDate(item.submitted_at)}</td>
+        </tr>
+      `).join('');
+      gradeList.innerHTML = `
+        <div class="table-responsive">
+          <table class="w3-table w3-striped">
+            <thead>
+              <tr>
+                <th>Học viên</th>
+                <th>Quiz</th>
+                <th>Tiết học</th>
+                <th>Điểm</th>
+                <th>Thời gian nộp</th>
+              </tr>
+            </thead>
+            <tbody>${tableRows}</tbody>
+          </table>
+        </div>`;
+    }
+
+    async function loadCourse(courseId){
+      if(!courseId){
+        gradeData = null;
+        lessons = [];
+        setSummary(null);
+        gradeList.innerHTML = "<div>Hãy chọn khóa học để xem bảng điểm.</div>";
+        filterWrap.style.display = 'none';
+        return;
+      }
+      gradeList.innerHTML = "<div>Đang tải dữ liệu...</div>";
+      try{
+        const [scores, ls] = await Promise.all([
+          listCourseScores(token, courseId),
+          listLessons(token, courseId).catch(()=>[])
+        ]);
+        gradeData = scores;
+        lessons = ls || [];
+        setSummary(scores.summary);
+        populateLessonFilter();
+        filterWrap.style.display = 'block';
+        renderResults();
+      }catch(e){
+        gradeList.innerHTML = "<div class='card'>Không thể tải bảng điểm.</div>";
+        setSummary(null);
+        filterWrap.style.display = 'none';
+      }
+    }
+
+    function updateUrl(courseId){
+      const url = new URL(location.href);
+      if(courseId){
+        url.searchParams.set('course_id', courseId);
+      }else{
+        url.searchParams.delete('course_id');
+      }
+      window.history.replaceState({}, '', url);
+    }
+
+    function exportCSV(){
+      if(!gradeData || !(gradeData.results||[]).length){
+        alert('Chưa có dữ liệu để xuất.');
+        return;
+      }
+      const header = ['Student','Quiz','Lesson','Score','SubmittedAt'];
+      const rows = (gradeData.results||[]).map(r=>[
+        `"${(r.user_name || ('User #' + r.user_id)).replace(/"/g,'""')}"`,
+        `"${(r.quiz_title || ('Quiz #' + r.quiz_id)).replace(/"/g,'""')}"`,
+        `"${(r.lesson_title || (r.lesson_id ? ('Lesson #' + r.lesson_id) : '')) .replace(/"/g,'""')}"`,
+        r.score,
+        `"${fmtDate(r.submitted_at).replace(/"/g,'""')}"`
+      ]);
+      const csv = [header.join(','), ...rows.map(r=>r.join(','))].join('\\n');
+      const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `grades_course_${gradeData.course_id}.csv`;
+      link.click();
+      URL.revokeObjectURL(link.href);
+    }
+
+    btnExport.addEventListener('click', exportCSV);
+    lessonFilter.addEventListener('change', renderResults);
+    studentFilter.addEventListener('input', ()=>{ renderResults(); });
+
+    courseSelect.addEventListener('change', ()=>{
+      const cid = courseSelect.value;
+      updateUrl(cid);
+      loadCourse(cid);
+    });
+
+    (async ()=>{
+      try{
+        courses = await listTeacherCourses(token);
+        if(!courses.length){
+          courseSelect.innerHTML = '<option value="">Chưa có khóa học</option>';
+          setSummary(null);
+          return;
+        }
+        courseSelect.innerHTML = ['<option value="">-- Chọn khóa học --</option>', ...courses.map(c=>
+          `<option value="${c.id}">${c.name || ('Course #' + c.id)}</option>`
+        )].join('');
+        const initCourse = params.get('course_id') || '';
+        if(initCourse && courses.some(c=>String(c.id)===String(initCourse))){
+          courseSelect.value = initCourse;
+          loadCourse(initCourse);
+        } else if(courses.length === 1){
+          courseSelect.value = courses[0].id;
+          updateUrl(courses[0].id);
+          loadCourse(courses[0].id);
+        }
+      }catch(e){
+        courseSelect.innerHTML = '<option value="">Không tải được khóa học</option>';
+        setSummary(null);
+      }
+    })();
+  </script>
+</body>
+</html>

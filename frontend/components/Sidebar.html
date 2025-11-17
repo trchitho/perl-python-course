@@ -1,0 +1,41 @@
+<aside class="sidebar">
+  <h2 style="padding-left:16px;">E‑Learning Basic IT</h2>
+  <nav id="sideLinks"></nav>
+</aside>
+<script>
+  (function(){
+    var role = localStorage.getItem('role') || 'student';
+    var el = document.currentScript.previousElementSibling.querySelector('#sideLinks');
+    function link(href, text){ return `<a href="${href}">${text}</a>`; }
+    if(role === 'teacher'){
+      el.innerHTML = [
+        link('/frontend/pages/teacher/dashboard.html','📊 Dashboard'),
+        link('/frontend/pages/teacher/courses.html','📚 Courses'),
+        link('/frontend/pages/teacher/lessons.html','📘 Lessons'),
+        link('/frontend/pages/teacher/quizzes.html','📝 Quizzes'),
+        link('/frontend/pages/teacher/grades.html','📑 Grades'),
+        link('/frontend/pages/teacher/subscribers.html','👥 Subscribers'),
+        link('/frontend/pages/teacher/announcements.html','🔔 Announcements')
+      ].join('');
+    } else if(role === 'admin'){
+      el.innerHTML = [
+        link('/frontend/pages/admin/dashboard.html','📊 Dashboard'),
+        link('/frontend/pages/admin/users.html','👤 Users'),
+        link('/frontend/pages/admin/enrollments.html','🧾 Enrollments'),
+        link('/frontend/pages/admin/logs.html','🗂 Logs'),
+        link('/frontend/pages/admin/settings.html','⚙️ Settings')
+      ].join('');
+    } else {
+      el.innerHTML = [
+        link('/frontend/pages/student/dashboard.html','📊 Dashboard'),
+        link('/frontend/pages/student/courses.html','📚 Courses'),
+        link('/frontend/pages/student/lessons.html','📘 Lessons'),
+        link('/frontend/pages/student/quiz.html','📝 Quiz'),
+        link('/frontend/pages/student/quiz-history.html','📒 Quiz History'),
+        link('/frontend/pages/student/progress.html','📈 Progress'),
+        link('/frontend/pages/student/chatbot.html','🤖 Chatbot'),
+        link('/frontend/pages/student/profile.html','👤 Profile')
+      ].join('');
+    }
+  })();
+</script>

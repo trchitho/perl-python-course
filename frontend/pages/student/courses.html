@@ -1,0 +1,82 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Student Courses</title>
+  <link rel="stylesheet" href="/frontend/assets/fonts.css?v=20251108-1">
+  <link rel="stylesheet" href="/frontend/assets/responsive.css?v=20251108-1">
+  <link rel="stylesheet" href="/frontend/assets/theme.css?v=20251108-1">
+  <style>
+    .course-card{
+      display:flex;
+      flex-direction:column;
+      justify-content:space-between;
+      min-height:260px;
+    }
+    .course-info h3{
+      font-size:20px;
+      margin:0 0 4px 0;
+      line-height:1.2;
+      height:2.6em;
+      overflow:hidden;
+      display:-webkit-box;
+      -webkit-line-clamp:2;
+      -webkit-box-orient:vertical;
+    }
+    .course-info p{
+      margin:6px 0;
+      color:#4b5563;
+      display:-webkit-box;
+      -webkit-line-clamp:2;
+      -webkit-box-orient:vertical;
+      overflow:hidden;
+    }
+  </style>
+  <script defer src="/frontend/assets/components.js?v=20251108-1"></script>
+  <script type="module" defer>
+    import { listAllCourses, enrollCourse } from '/frontend/services/courseAPI.js';
+    window.addEventListener('DOMContentLoaded', async ()=>{
+      const token = localStorage.getItem('token');
+      const wrap = document.getElementById('list');
+      try{
+        const courses = await listAllCourses(token);
+        wrap.innerHTML = courses.map(c => `
+          <div class="card course-card">
+            <div class="course-info">
+              <h3>${c.name||'Course'}</h3>
+              <div class="teacher">Instructor: ${c.teacher_name||'Unknown'}</div>
+              <p>${c.description||''}</p>
+              <p style="color:${c.enrolled?'green':'red'}">${c.enrolled?'Enrolled':'Not enrolled'}</p>
+            </div>
+            <button class="w3-button" data-id="${c.id}" data-enrolled="${c.enrolled}">${c.enrolled?'Open':'Enroll'}</button>
+          </div>`).join('');
+        wrap.querySelectorAll('button').forEach(btn=>{
+          btn.addEventListener('click', async ()=>{
+            const id = parseInt(btn.getAttribute('data-id'));
+            const enrolled = btn.getAttribute('data-enrolled')==='true';
+            if(enrolled){ location.href='/frontend/pages/student/course-details.html?id='+id; }
+            else{
+              const res = await enrollCourse(token, id);
+              alert(res.message||'Enrollment done');
+              location.reload();
+            }
+          });
+        });
+      }catch(err){ wrap.innerHTML = `<p style='color:red'>Failed to load courses</p>`; }
+    });
+  </script>
+</head>
+<body class="w3-has-top">
+  <div data-component="Navbar"></div>
+  <div style="display:flex;">
+    <div data-component="Sidebar"></div>
+    <main class="w3-container w3-section" style="flex:1;max-width:1120px;">
+      <h1>Courses</h1>
+      <div id="list" class="card-grid"></div>
+    </main>
+  </div>
+  <div data-component="Footer"></div>
+</body>
+</html>
+
+

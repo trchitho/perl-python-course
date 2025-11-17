@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Student Dashboard</title>
+  <link rel="stylesheet" href="/frontend/assets/fonts.css?v=20251108-1">
+  <link rel="stylesheet" href="/frontend/assets/responsive.css?v=20251108-1">
+  <link rel="stylesheet" href="/frontend/assets/theme.css?v=20251108-1">
+  <script defer src="/frontend/assets/components.js?v=20251108-1"></script>
+</head>
+<body class="w3-has-top">
+  <div data-component="Navbar"></div>
+  <div style="display:flex;">
+    <div data-component="Sidebar"></div>
+    <main class="w3-container w3-section" style="flex:1;max-width:1120px;">
+      <h1 id="hello">Welcome, Student</h1>
+
+      <section class="card">
+        <h3>Overview</h3>
+        <div id="overview">
+          <div id="progressBox" style="margin:8px 0;">
+            <strong>Learning Progress:</strong>
+            <div class="progress-bar"><div id="pInner" class="progress-bar-inner" style="width:0%">0%</div></div>
+          </div>
+          <div id="scores" style="color:#555">Avg quiz score: --</div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h3>Quick Links</h3>
+        <p>
+          <a class="w3-button" href="/frontend/pages/student/courses.html">My Courses</a>
+          <a class="w3-button" href="/frontend/pages/student/quiz.html">Quizzes</a>
+          <a class="w3-button" href="/frontend/pages/student/chatbot.html">Chatbot</a>
+        </p>
+      </section>
+
+      <section class="card">
+        <h3>Announcements</h3>
+        <ul id="annList" class="simple-list"></ul>
+      </section>
+    </main>
+  </div>
+  <div data-component="Footer"></div>
+
+  <script type="module">
+    import { getProgress, getAnnouncements } from '/frontend/services/studentAPI.js';
+    const token = localStorage.getItem('token');
+    const name = localStorage.getItem('fullname') || 'Student';
+    document.getElementById('hello').textContent = `Welcome, ${name}`;
+
+    async function load(){
+      if(!token){ return; }
+      try{
+        const prog = await getProgress(token);
+        const percent = Math.round(prog.progress_percent || prog.percent || 0);
+        const avg = Math.round((prog.avg_score || 0) * 10) / 10;
+        const pInner = document.getElementById('pInner');
+        pInner.style.width = percent + '%';
+        pInner.textContent = percent + '%';
+        document.getElementById('scores').textContent = `Avg quiz score: ${isNaN(avg) ? '--' : avg}`;
+      }catch(e){ /* ignore */ }
+
+      try{
+        const anns = await getAnnouncements(token);
+        const ul = document.getElementById('annList');
+        if(!Array.isArray(anns) || anns.length === 0){
+          ul.innerHTML = '<li>No announcements.</li>';
+          return;
+        }
+        ul.innerHTML = anns.slice(0,6).map(a=>{
+          const course = a.course_name || (`Khóa học #${a.course_id||''}`);
+          const teacher = a.teacher_name || 'Giảng viên chưa cập nhật';
+          const title = a.title || 'Announcement';
+          const time = a.created_at ? `<span style="color:#94a3b8;font-size:12px;">${a.created_at}</span>` : '';
+          return `<li>
+            <div><strong>${course}</strong> – ${title}</div>
+            <div style="color:#6b7280;font-size:13px;">Giảng viên: ${teacher} ${time}</div>
+            <div>${a.message}</div>
+          </li>`;
+        }).join('');
+      }catch(e){
+        document.getElementById('annList').innerHTML = '<li>Failed to load.</li>';
+      }
+    }
+    load();
+  </script>
+</body>
+</html>

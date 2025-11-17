@@ -1,0 +1,64 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Course Details</title>
+  <link rel="stylesheet" href="/frontend/assets/fonts.css?v=20251108-1">
+  <link rel="stylesheet" href="/frontend/assets/responsive.css?v=20251108-1">
+  <link rel="stylesheet" href="/frontend/assets/theme.css?v=20251108-1">
+  <script defer src="/frontend/assets/components.js?v=20251108-1"></script>
+</head>
+<body class="w3-has-top">
+  <div data-component="Navbar"></div>
+  <div style="display:flex;">
+    <div data-component="Sidebar"></div>
+    <main class="w3-container w3-section" style="flex:1;max-width:1120px;">
+      <h1 id="cTitle">Course</h1>
+      <p id="cDesc" style="color:#555"></p>
+      <div class="grid-2">
+        <div>
+          <h3>Overview</h3>
+          <p><strong>Category:</strong> <span id="cCat">â€”</span></p>
+          <p><strong>Duration:</strong> <span id="cDur">â€”</span></p>
+          <p><strong>Instructor:</strong> <span id="cTeacher">â€”</span></p>
+          <button id="btnEnroll" class="w3-button">Enroll / Subscribe</button>
+          <span id="enMsg" style="margin-left:8px;color:#666"></span>
+        </div>
+        <div>
+          <h3>Lessons</h3>
+          <ul id="lessonList" class="simple-list"></ul>
+        </div>
+      </div>
+    </main>
+  </div>
+  <div data-component="Footer"></div>
+  <script type="module">
+    import { getCourseDetail } from '/frontend/services/studentAPI.js';
+    import { enrollCourse } from '/frontend/services/courseAPI.js';
+    const token = localStorage.getItem('token');
+    const params = new URLSearchParams(location.search);
+    const id = params.get('id');
+    async function load(){
+      if(!token || !id){ return; }
+      try{
+        const d = await getCourseDetail(token, id);
+        document.getElementById('cTitle').textContent = d.name || d.title || 'Course';
+        document.getElementById('cDesc').textContent = d.description || '';
+        document.getElementById('cCat').textContent = d.category || '-';
+        document.getElementById('cDur').textContent = (Number(d.duration)>0? d.duration+ ' min' : '-');
+        document.getElementById('cTeacher').textContent = d.teacher_name || d.teacher || '-';
+        const ul = document.getElementById('lessonList');
+        ul.innerHTML = (d.lessons||[]).map(l=>`<li><a href='/frontend/pages/student/lessons.html?course_id=${d.id||id}&lesson_id=${l.id}'>${l.title||l.name||'Lesson'}</a></li>`).join('') || '<li>No lessons.</li>';
+        document.getElementById('btnEnroll').onclick = async ()=>{
+          const res = await enrollCourse(token, d.id||id);
+          document.getElementById('enMsg').textContent = res.message || 'Enrolled';
+        };
+      }catch(e){ document.getElementById('enMsg').textContent = 'Failed to load'; }
+    }
+    load();
+  </script>
+</body>
+</html>
+
+
+

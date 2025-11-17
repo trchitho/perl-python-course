@@ -1,0 +1,98 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Subscribers</title>
+  <link rel="stylesheet" href="/frontend/assets/fonts.css?v=20251108-1">
+  <link rel="stylesheet" href="/frontend/assets/responsive.css?v=20251108-1">
+  <link rel="stylesheet" href="/frontend/assets/theme.css?v=20251108-1">
+  <script defer src="/frontend/assets/components.js?v=20251108-1"></script>
+</head>
+<body class="w3-has-top">
+  <div data-component="Navbar"></div>
+  <div style="display:flex;">
+    <div data-component="Sidebar"></div>
+    <main class="w3-container w3-section" style="flex:1;max-width:1120px;">
+      <section class="section-head"><div>
+        <h1 class="section-title">Subscribers</h1>
+        <p class="section-sub">Approve or remove course enrollments</p>
+      </div></section>
+      <div id="subList" class="card-grid"></div>
+    </main>
+  </div>
+  <div data-component="Footer"></div>
+  <script type="module">
+    import { listSubscribers, approveSubscriber, removeSubscriber, listTeacherCourses } from '/frontend/services/teacherAPI.js';
+    const token = localStorage.getItem('token');
+    const subList = document.getElementById('subList');
+
+    async function loadAll(){
+      subList.innerHTML = "<div class='card'>Loading courses...</div>";
+      try{
+        const courses = await listTeacherCourses(token);
+        if(!Array.isArray(courses) || courses.length===0){
+          subList.innerHTML = "<div class='card'>You have no courses yet.</div>";
+          return;
+        }
+        const cards = await Promise.all(courses.map(async course=>{
+          let body = '';
+          try{
+            const subs = await listSubscribers(token, course.id);
+            const count = (subs||[]).length;
+            const rows = count ? subs.map(s=>{
+              const badge = `<span style=\"padding:2px 8px;border-radius:999px;background:${s.status==='approved'?'#dcfce7':(s.status==='pending'?'#fef3c7':'#fce7f3')};color:#166534;font-size:12px;\">${s.status||'pending'}</span>`;
+              return `<div style='display:flex;justify-content:space-between;gap:12px;align-items:center;border:1px solid #e5e7eb;border-radius:8px;padding:10px;margin-top:8px;flex-wrap:wrap'>
+                <div>
+                  <b>${s.fullname||('User '+s.user_id)}</b>
+                  <div style='color:#6b7280;font-size:13px;'>${s.email||''}</div>
+                </div>
+                <div style='display:flex;gap:6px;align-items:center;flex-wrap:wrap'>
+                  ${badge}
+                  ${s.status==='pending'? `<button class='w3-button w3-outline' data-subscriber-action='approve' data-id='${s.id}'>Approve</button>`:''}
+                  <button class='w3-button w3-danger' data-subscriber-action='remove' data-id='${s.id}' data-course='${course.id}'>Remove</button>
+                </div>
+              </div>`;
+            }).join('') : "<div style='color:#6b7280;margin-top:8px;'>No subscribers yet.</div>";
+            body = `<div style='display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap'>
+                <div>
+                  <h3 style='margin:0'>${course.name||('Course #'+course.id)}</h3>
+                  <div style='color:#6b7280;font-size:14px;'>${count} subscriber${count===1?'':'s'}</div>
+                </div>
+                <a class='w3-button w3-outline' href='/frontend/pages/teacher/lessons.html?course_id=${course.id}'>Manage Lessons</a>
+              </div>
+              ${rows}`;
+          }catch(err){
+            body = `<h3 style='margin:0'>${course.name||('Course #'+course.id)}</h3><div style='color:#b91c1c;margin-top:6px;'>Failed to load subscribers.</div>`;
+          }
+          return `<section class='card'>${body}</section>`;
+        }));
+        subList.innerHTML = cards.join('');
+      }catch(e){
+        subList.innerHTML = "<div class='card'>Failed to load courses.</div>";
+      }
+    }
+
+    document.addEventListener('click', async (e)=>{
+      const btn = e.target.closest('[data-subscriber-action]');
+      if(!btn) return;
+      const action = btn.getAttribute('data-subscriber-action');
+      const id = btn.getAttribute('data-id');
+      try{
+        if(action==='approve'){
+          await approveSubscriber(token, id);
+        }else if(action==='remove'){
+          if(!confirm('Remove this subscriber from the course?')) return;
+          await removeSubscriber(token, id);
+        }
+        await loadAll();
+      }catch(err){
+        alert('Action failed');
+      }
+    });
+
+    loadAll();
+  </script>
+</body>
+</html>
+
+

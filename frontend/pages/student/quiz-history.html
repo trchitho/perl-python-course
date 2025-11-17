@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Quiz History</title>
+  <link rel="stylesheet" href="/frontend/assets/fonts.css?v=20251108-1">
+  <link rel="stylesheet" href="/frontend/assets/responsive.css?v=20251108-1">
+  <link rel="stylesheet" href="/frontend/assets/theme.css?v=20251108-1">
+  <style>
+    .history-table{
+      width:100%;
+      border-collapse:collapse;
+      table-layout:fixed;
+    }
+    .history-table th,
+    .history-table td{
+      border-bottom:1px solid #e5e7eb;
+      padding:10px;
+      text-align:left;
+      vertical-align:top;
+    }
+    .history-table th:first-child,
+    .history-table td:first-child{width: 24%;}
+    .history-table th:nth-child(2),
+    .history-table td:nth-child(2){width:24%;}
+    .history-table th:nth-child(3),
+    .history-table td:nth-child(3){width:22%;}
+    .history-table th:nth-child(4),
+    .history-table td:nth-child(4){width:10%;}
+    .history-table th:nth-child(5),
+    .history-table td:nth-child(5){width:20%;}
+    .history-table td{
+      word-break:break-word;
+      white-space:normal;
+    }
+    .history-table td span{
+      display:block;
+    }
+  </style>
+  <script defer src="/frontend/assets/components.js?v=20251108-1"></script>
+</head>
+<body class="w3-has-top">
+  <div data-component="Navbar"></div>
+  <div style="display:flex;">
+    <div data-component="Sidebar"></div>
+    <main class="w3-container w3-section" style="flex:1;max-width:1120px;">
+      <h1>Quiz History</h1>
+      <p>Xem lại điểm các bài quiz đã làm</p>
+      <section class="card">
+        <div id="historyTable">Loading...</div>
+      </section>
+    </main>
+  </div>
+  <div data-component="Footer"></div>
+  <script type="module">
+    import { getQuizHistory } from '/frontend/services/studentAPI.js';
+    const token = localStorage.getItem('token');
+    if(!token){
+      location.href = `/frontend/pages/auth/login.html?next=${encodeURIComponent(location.href)}`;
+    }
+    const historyTable = document.getElementById('historyTable');
+    try{
+      const rows = await getQuizHistory(token);
+      if(!rows.length){
+        historyTable.innerHTML = '<p>Chưa có lượt làm bài nào.</p>';
+      }else{
+        historyTable.innerHTML = `
+          <div class="table-responsive">
+            <table class="history-table">
+              <thead>
+                <tr>
+                  <th>Khóa học</th>
+                  <th>Tiết học</th>
+                  <th>Quiz</th>
+                  <th>Điểm</th>
+                  <th>Thời gian nộp</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${rows.map(r=> `
+                  <tr>
+                    <td><span>${r.course_title || '-'}</span></td>
+                    <td><span>${r.lesson_title || '-'}</span></td>
+                    <td><span>${r.quiz_title || ('Quiz ' + r.quiz_id)}</span></td>
+                    <td><span>${r.score}</span></td>
+                    <td><span>${r.submitted_at || '-'}</span></td>
+                  </tr>`).join('')}
+              </tbody>
+            </table>
+          </div>`;
+      }
+    }catch(e){
+      historyTable.innerHTML = '<p style="color:red">Không tải được dữ liệu.</p>';
+    }
+  </script>
+</body>
+</html>

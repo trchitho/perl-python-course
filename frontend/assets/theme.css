@@ -1,0 +1,162 @@
+﻿/* W3Schools-inspired site-wide theme */
+:root {
+  --brand-bg: #04AA6D; /* W3Schools green */
+  --brand-bg-dark: #059862;
+  --brand-text: #fff;
+  --topbar-height: 56px;
+  --bg: #f7fafc;
+  --text: #1f2937;
+  --muted: #6b7280;
+  --border: #e5e7eb;
+  --primary: #0ea5e9;
+}
+
+/* Top bar */
+.w3-topbar {
+  position: sticky;
+  top: 0; left: 0; right: 0;
+  z-index: 1000;
+  height: var(--topbar-height);
+  background: var(--brand-bg);
+  color: var(--brand-text);
+  display: flex;
+  align-items: center;
+}
+.w3-topbar .w3-wrap {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 16px;
+}
+.w3-brand {
+  font-weight: 700;
+  letter-spacing: .2px;
+  color: var(--brand-text);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.w3-nav {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.w3-nav a {
+  color: var(--brand-text);
+  text-decoration: none;
+  padding: 10px 12px;
+  border-radius: 6px;
+}
+.w3-nav a:hover { background: var(--brand-bg-dark); }
+
+.w3-spacer { flex: 1; }
+
+.w3-search {
+  position: relative;
+  display: none; /* hidden on small, enabled at â‰¥768 */
+}
+.w3-search input {
+  border: none;
+  border-radius: 20px;
+  padding: 8px 12px;
+  width: 220px;
+}
+
+.w3-auth a { color: var(--brand-text); text-decoration: none; padding: 10px 12px; border-radius: 6px; }
+.w3-auth a:hover { background: var(--brand-bg-dark); }
+
+/* Sub navigation bar (below topbar on dashboards) */
+.w3-subnav { position: sticky; top: var(--topbar-height); z-index: 900; background:#f1f5f9; border-bottom:1px solid var(--border); }
+.w3-subnav .w3-wrap { display:flex; align-items:center; gap:8px; padding: 8px 16px; }
+.w3-subnav .w3-subnav-links a { color:#0f172a; background:#e2e8f0; border-radius:999px; padding:6px 12px; }
+.w3-subnav .w3-subnav-links a:hover { background:#cbd5e1; }
+
+/* Mobile menu */
+.w3-menu-btn { display: inline-flex; align-items: center; gap: 6px; color: var(--brand-text); background: transparent; border: none; padding: 8px 10px; border-radius: 6px; }
+.w3-menu-btn:hover { background: var(--brand-bg-dark); }
+
+.w3-mobile-panel { display: none; background: var(--brand-bg); }
+.w3-mobile-panel.open { display: block; }
+.w3-mobile-panel a { display: block; padding: 10px 16px; color: var(--brand-text); text-decoration: none; }
+.w3-mobile-panel a:hover { background: var(--brand-bg-dark); }
+
+/* Push content below fixed bar when page doesnâ€™t already account for it */
+.w3-has-top { margin-top: var(--topbar-height); }
+/* If subnav present after topbar, push body a bit more */
+body.w3-has-top .w3-subnav + * { margin-top: 0; }
+
+/* Adjust fixed sidebars to sit below topbar when present */
+body.w3-has-top .sidebar {
+  top: var(--topbar-height);
+  height: calc(100vh - var(--topbar-height));
+}
+
+/* Utilities reminiscent of W3.CSS */
+.w3-container { padding: 0 16px; }
+
+@media (max-width: 480px){
+  .w3-section{ padding: 16px 0; }
+  .hero{ padding: 24px; }
+}
+.w3-card { background: #fff; box-shadow: 0 4px 10px rgba(0,0,0,.05); border-radius: 8px; padding: 16px; }
+.w3-button { background: var(--brand-bg); color: #fff; border: none; border-radius: 6px; padding: 8px 14px; cursor: pointer; }
+.w3-button:hover { background: var(--brand-bg-dark); }
+.w3-button.w3-secondary{background:var(--primary);color:#fff}
+.w3-button.w3-outline{background:transparent;color:var(--text);border:1px solid var(--border)}
+
+/* Breakpoints */
+@media (min-width: 768px) {
+  .w3-search { display: block; }
+  .w3-mobile-only { display: none !important; }
+}
+
+
+/* Simple hero + cards styling for cleaner UI */
+.hero{background:linear-gradient(135deg,#eef4ff,#f7fbff);padding:32px;border-radius:12px;margin-bottom:24px;border:1px solid #e8efff;box-shadow:0 2px 6px rgba(0,0,0,.04)}
+.hero h1{margin:0 0 6px 0}
+.hero-ctas .w3-button{margin-right:8px}
+.cards .section-title{margin:8px 0 12px 0}
+.card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px}
+.card{display:block;padding:16px;border:1px solid var(--border);border-radius:12px;text-decoration:none;color:var(--text);background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.04);transition:background-color .15s ease,border-color .15s ease,box-shadow .15s ease}
+.card:hover{border-color:#94a3b8;background:#f8fafc;box-shadow:0 6px 16px rgba(0,0,0,.08)}
+
+/* Sidebar */
+.sidebar{position:sticky;top:0;min-width:220px;max-width:240px;height:100vh;border-right:1px solid var(--border);background:#fff}
+.sidebar nav{display:flex;flex-direction:column}
+.sidebar nav a{padding:10px 16px;border-left:3px solid transparent;text-decoration:none;color:var(--text)}
+.sidebar nav a:hover{background:#f8fafc;border-left-color:var(--primary)}
+
+/* Simple list (announcements) */
+.simple-list{list-style:none;padding-left:18px}
+.simple-list li{margin:6px 0;position:relative}
+.simple-list li::before{content:'•';position:absolute;left:-14px;color:#94a3b8}
+
+/* Progress bar */
+.progress-bar{height:10px;background:#eef2ff;border-radius:999px;overflow:hidden;border:1px solid #e2e8f0}
+.progress-bar-inner{height:100%;background:linear-gradient(90deg,#10b981,#059669);color:#fff;font-size:11px;line-height:10px;text-align:center}
+
+/* Grids */
+.grid-2{display:grid;grid-template-columns:1fr;gap:16px}
+@media (min-width: 900px){.grid-2{grid-template-columns:1fr 1fr}}
+
+
+/* Signed-in home adjustments */
+.signed-header{background:#f8fafc;border:1px solid #e5e7eb;padding:16px;border-radius:8px;margin-bottom:14px}
+
+/* Sections & cards inspired by Codelearn */
+.section{margin-top:24px}
+.section-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:8px}
+.section-title{margin:0;font-size:20px}
+.section-sub{margin:0;color:#6b7280;font-size:14px}
+.card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+.card{display:block;padding:16px;border:1px solid var(--border);border-radius:12px;text-decoration:none;color:var(--text);background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.04);transition:background-color .15s ease,border-color .15s ease,box-shadow .15s ease}
+.card:hover{border-color:#94a3b8;background:#f8fafc;box-shadow:0 6px 16px rgba(0,0,0,.08)}
+.card .tag{position:absolute;top:8px;left:8px;background:#eef2ff;color:#3730a3;border-radius:6px;padding:2px 8px;font-size:12px;font-weight:600}
+.card .tag.tag-hot{background:#fee2e2;color:#b91c1c}
+.card-path span,.card-course span{display:block;margin-top:8px}
+.hero{background:linear-gradient(135deg,#eef4ff,#f7fbff);padding:32px;border-radius:12px;margin-bottom:24px;border:1px solid #e8efff;box-shadow:0 2px 6px rgba(0,0,0,.04)}
+.hero h1{margin:0 0 6px 0}
+.hero-ctas .w3-button{margin-right:8px}
+

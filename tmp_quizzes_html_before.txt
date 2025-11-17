@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Teacher Quizzes</title>
+  <link rel="stylesheet" href="/frontend/assets/fonts.css?v=20251108-1">
+  <link rel="stylesheet" href="/frontend/assets/responsive.css?v=20251108-1">
+  <link rel="stylesheet" href="/frontend/assets/theme.css?v=20251108-1">
+  <script defer src="/frontend/assets/components.js?v=20251108-1"></script>
+</head>
+<body class="w3-has-top">
+  <div data-component="Navbar"></div>
+  <div style="display:flex;">
+    <div data-component="Sidebar"></div>
+    <main class="w3-container w3-section" style="flex:1;max-width:1120px;">
+      <section class="section-head"><div>
+        <h1 class="section-title">Quiz Management</h1>
+        <p class="section-sub">Create questions and review results</p>
+      </div></section>
+      <section class="card" style="margin-bottom:16px;">
+        <h3>New Question</h3>
+        <form id="fQ">
+          <input id="qText" placeholder="Question" style="width:100%;padding:10px;margin:6px 0;">
+          <div class="grid-2">
+            <input id="optA" placeholder="Option A" style="padding:10px;margin:6px 0;">
+            <input id="optB" placeholder="Option B" style="padding:10px;margin:6px 0;">
+            <input id="optC" placeholder="Option C" style="padding:10px;margin:6px 0;">
+            <input id="optD" placeholder="Option D" style="padding:10px;margin:6px 0;">
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <label>Correct: <select id="correct"><option>A</option><option>B</option><option>C</option><option>D</option></select></label>
+            <button class="w3-button" type="submit">Add Question</button>
+            <span id="qMsg" style="color:#666"></span>
+          </div>
+        </form>
+      </section>
+
+      <section class="card" style="margin-bottom:16px;">
+        <h3>Bulk Import (correct answer marked by *)</h3>
+        <p style="color:#555;margin-top:0">M?i câu h?i cách nhau b?i 1 d?ng tr?ng. Ð?t d?u * vào ð?u ðáp án ðúng. Ví d?:</p>
+<pre style="background:#f8fafc;border:1px solid #e5e7eb;padding:10px;border-radius:8px;white-space:pre-wrap">
+What is 2 + 2?
+3
+*4
+5
+22
+
+Capital of France?
+Berlin
+Madrid
+*Paris
+Rome
+</pre>
+        <textarea id="bulkText" placeholder="Dán n?i dung t?i ðây..." style="width:100%;min-height:160px;padding:10px;margin-top:6px"></textarea>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+          <button id="btnPreview" class="w3-button w3-outline" type="button">Preview</button>
+          <button id="btnImport" class="w3-button" type="button">Import</button>
+          <span id="bulkMsg" style="color:#666"></span>
+        </div>
+        <div id="preview" class="card-grid" style="margin-top:10px"></div>
+      </section>
+      <section>
+        <h3>Results</h3>
+        <div id="resList" class="card-grid"></div>
+      </section>
+    </main>
+  </div>
+  <div data-component="Footer"></div>
+  <script type="module">
+    import { createQuestion, listResults } from '/frontend/services/teacherAPI.js';
+    const token = localStorage.getItem('token');
+    const courseId = new URLSearchParams(location.search).get('course_id');
+    const quizId = new URLSearchParams(location.search).get('quiz_id');
+    let curQuizId = quizId; // allow creating a quiz then continue import
+    const resList = document.getElementById('resList');
+    if(!curQuizId){
+      // If courseId is provided, allow creating a new quiz quickly
+      if(courseId){
+        const holder = document.createElement('section'); holder.className='card';
+        holder.innerHTML = `
+          <h3>Create a Quiz for this Course</h3>
+          <div style='display:flex;gap:8px;flex-wrap:wrap'>
+            <input id='newQuizTitle' placeholder='Quiz title' style='padding:10px;min-width:260px'>
+            <input id='newTime' type='number' placeholder='Time limit (min)' style='padding:10px;width:180px'>
+            <button id='btnCreateQuiz' class='w3-button'>Create Quiz</button>
+            <span id='createMsg' style='color:#666'></span>
+          </div>`;
+        document.querySelector('main').insertBefore(holder, document.querySelector('main').firstChild.nextSibling);
+        document.getElementById('btnCreateQuiz').onclick = async ()=>{
+          try{
+            const api = await import('/frontend/services/teacherAPI.js');
+            const res = await api.createQuiz(token, courseId, { title: document.getElementById('newQuizTitle').value || 'Imported Quiz', time_limit: Number(document.getElementById('newTime').value)||0 });
+            document.getElementById('createMsg').textContent = 'Created quiz #' + res.id;
+            // keep on same page and continue without redirect
+            curQuizId = res.id;
+          }catch(e){ document.getElementById('createMsg').textContent='Create failed'; }
+        };
+      } else {
+        resList.innerHTML = "<div class='card'>Provide ?quiz_id=ID in URL (or add ?course_id=ID to create a new quiz)</div>";
+      }
+    }
+    document.getElementById('fQ').addEventListener('submit', async (e)=>{
+      e.preventDefault(); if(!curQuizId) { qMsg.textContent = 'Missing quiz_id — create a quiz first'; return; }
+      const body = { question_text: qText.value.trim(), option_a: optA.value.trim(), option_b: optB.value.trim(), option_c: optC.value.trim(), option_d: optD.value.trim(), correct_option: correct.value };
+      try{ await createQuestion(token, curQuizId, body); qMsg.textContent='Added'; }
+      catch(err){ qMsg.textContent='Add failed'; }
+    });
+
+    // ------- Bulk import helpers -------
+    function parseStarBlock(text){
+      const blocks = text.split(/\r?\n\s*\r?\n/).map(b=>b.trim()).filter(Boolean);
+      const items = [];
+      for(const b of blocks){
+        const lines = b.split(/\r?\n/).map(l=>l.trim()).filter(Boolean);
+        if(lines.length < 2) continue;
+        const q = lines[0].replace(/^\*+/,'').trim();
+        const optsRaw = lines.slice(1);
+        // normalize: strip labels like A), B., -, 1)
+        const opts = [];
+        let correctIdx = -1;
+        for(let i=0;i<optsRaw.length && opts.length<4;i++){
+          let line = optsRaw[i];
+          let isCorrect = false;
+          if(line.startsWith('*')){ isCorrect = true; line = line.replace(/^\*+\s*/, ''); }
+          line = line.replace(/^[A-Da-d][\)\.|:-]?\s*/, '');
+          line = line.replace(/^[-•]\s*/, '');
+          if(!line) continue;
+          if(isCorrect && correctIdx === -1) correctIdx = opts.length;
+          opts.push(line);
+        }
+        if(opts.length<2) continue; // need at least 2 options
+        while(opts.length<4) opts.push(''); // pad to 4
+        const letter = ['A','B','C','D'][Math.max(0, correctIdx)];
+        items.push({ question_text:q, option_a:opts[0], option_b:opts[1], option_c:opts[2], option_d:opts[3], correct_option:letter, _correctIdx:Math.max(0,correctIdx) });
+      }
+      return items;
+    }
+
+    const preview = document.getElementById('preview');
+    const bulkMsg = document.getElementById('bulkMsg');
+    document.getElementById('btnPreview').onclick = ()=>{
+      const items = parseStarBlock(document.getElementById('bulkText').value||'');
+      bulkMsg.textContent = items.length + ' questions parsed';
+      preview.innerHTML = items.map(it=>{
+        const opts = [it.option_a,it.option_b,it.option_c,it.option_d];
+        return `<div class='card'><b>${it.question_text}</b><ul class='simple-list' style='margin-top:6px'>${opts.map((o,i)=>`<li ${i===it._correctIdx?"style='color:green;font-weight:600'":''}>${['A','B','C','D'][i]}. ${o||''}</li>`).join('')}</ul></div>`;
+      }).join('');
+    };
+
+    document.getElementById('btnImport').onclick = async ()=>{
+      // Auto-create quiz if only course_id is present
+      if(!curQuizId){
+        if(!courseId){ bulkMsg.textContent = 'Missing quiz_id — add ?quiz_id=ID or ?course_id=ID'; return; }
+        try{
+          const api = await import('/frontend/services/teacherAPI.js');
+          const res = await api.createQuiz(token, courseId, { title: 'Imported ' + new Date().toLocaleString(), time_limit: 0 });
+          curQuizId = res.id;
+        }catch(e){ bulkMsg.textContent = 'Cannot create quiz automatically'; return; }
+      }
+      const items = parseStarBlock(document.getElementById('bulkText').value||'');
+      if(items.length===0){ bulkMsg.textContent='Nothing to import'; return; }
+      let ok=0, fail=0;
+      for(const it of items){
+        try{ await createQuestion(token, curQuizId, it); ok++; }
+        catch(e){ fail++; }
+      }
+      bulkMsg.textContent = `Imported ${ok} question(s)` + (fail?`, failed ${fail}`:'');
+    };
+    (async ()=>{
+      if(!quizId) return; try{
+        const data = await listResults(token, quizId);
+        resList.innerHTML = (data||[]).map(r=>`<div class='card'><b>${r.user_name||('User '+r.user_id)}</b> — score ${r.score}</div>`).join('') || "<div class='card'>No results.</div>";
+      }catch(e){ resList.innerHTML = "<div class='card'>Failed to load results</div>"; }
+    })();
+  </script>
+</body>
+</html>
+
+

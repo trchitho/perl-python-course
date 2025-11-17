@@ -1,0 +1,62 @@
+@startuml
+left to right direction
+skinparam packageStyle rectangle
+skinparam backgroundColor #fff
+
+actor Learner as L
+actor Teacher as T
+actor Admin as A
+
+package "Use Case Diagram for E-Learning Website for Basic IT Beginners" {
+  usecase "Register / Login" as UC_Login
+  usecase "Profile & Password Management" as UC_Profile
+  usecase "Search & View Courses" as UC_Search
+  usecase "View Course Details" as UC_CourseDetail
+  usecase "Subscribers in Course (Enroll)" as UC_Enroll
+  usecase "Subscribers Validation" as UC_EnrollValid
+  usecase "View Lesson" as UC_ViewLesson
+  usecase "Preview Lesson / System Notifications" as UC_Preview
+  usecase "Take Quiz" as UC_Quiz
+  usecase "Track Learning Progress" as UC_Progress
+  usecase "AI Chatbot" as UC_Chat
+  usecase "AI Chatbot Assistance" as UC_ChatAssist
+  usecase "Announcements" as UC_Announce
+  usecase "Send Announcements" as UC_SendAnn
+
+  usecase "Manage subscribers" as UC_ManageSubs
+  usecase "Manage Course and Quiz" as UC_ManageCourse
+  usecase "Create / Edit / Grade Quiz" as UC_EditQuiz
+  usecase "Upload Lesson Materials" as UC_Upload
+  usecase "View Student Reports" as UC_ViewReports
+
+  usecase "Manage Enrollments (system-wide)" as UC_SysEnroll
+  usecase "Manage Users" as UC_Users
+  usecase "Audit Logs & Configuration" as UC_Audit
+}
+
+L --> UC_Login
+L --> UC_Search
+L --> UC_Enroll
+L --> UC_ViewLesson
+L --> UC_Quiz
+L --> UC_Progress
+L --> UC_Chat
+L --> UC_Announce
+UC_Login ..> UC_Profile : <<include>>
+UC_Search ..> UC_CourseDetail : <<include>>
+UC_Enroll ..> UC_EnrollValid : <<include>>
+UC_ViewLesson ..> UC_Preview : <<include>>
+UC_Chat ..> UC_ChatAssist : <<extend>>
+UC_Announce ..> UC_SendAnn : <<extend>>
+
+T --> UC_ManageSubs
+T --> UC_ManageCourse
+T --> UC_ViewReports
+UC_ManageCourse ..> UC_EditQuiz : <<extend>>
+UC_ManageCourse ..> UC_Upload : <<extend>>
+
+A --> UC_Users
+A --> UC_SysEnroll
+A --> UC_Audit
+
+@enduml

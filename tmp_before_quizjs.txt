@@ -1,0 +1,83 @@
+const params = new URLSearchParams(window.location.search);
+const assignmentId = params.get('assignment_id');
+const lessonId = params.get('lesson_id');
+const courseId = params.get('course_id');
+const token = localStorage.getItem('token');
+
+document.getElementById('back-to-lesson').href = `/frontend/pages/student/lessons.html?course_id=${params.get('course_id')||''}`;
+
+const storageKey = `quiz_${assignmentId||courseId||'unknown'}_answers`;
+const pendingKey = `quiz_${assignmentId||courseId||'unknown'}_pending_submit`;
+
+async function loadQuiz() {
+  // Guard: if no assignmentId, show guidance instead of calling an invalid API
+  if(!assignmentId){
+    const container = document.getElementById('quiz');
+    container.innerHTML = `<div class='card'>No quiz selected. Ask your teacher to assign a quiz for this lesson/course.</div>`;
+    document.getElementById('status').textContent = '';
+    return;
+  }
+  const res = await fetch(`http://127.0.0.1:5000/api/student/assignment/${assignmentId}`, { headers: { 'Authorization': 'Bearer ' + token } });
+  const data = await res.json();
+  const quiz = data.quiz || [];
+  const container = document.getElementById('quiz');
+  const saved = JSON.parse(localStorage.getItem(storageKey) || '{}');
+  quiz.forEach(q => {
+    const wrap = document.createElement('div');
+    wrap.className = 'card';
+    wrap.innerHTML = `<h3>${q.question}</h3>`;
+    Object.entries(q.options).forEach(([label, text]) => {
+      const checked = saved[q.id] === label ? 'checked' : '';
+      wrap.innerHTML += `
+        <label style="display:block;margin:4px 0;">
+          <input type="radio" name="q_${q.id}" value="${label}" ${checked}/> ${label}. ${text}
+        </label>`;
+    });
+    container.appendChild(wrap);
+  });
+
+  container.addEventListener('change', () => {
+    const answers = {};
+    container.querySelectorAll('input[type=radio]:checked').forEach(inp => {
+      const qid = parseInt(inp.name.split('_')[1]);
+      answers[qid] = inp.value;
+    });
+    localStorage.setItem(storageKey, JSON.stringify(answers));
+    document.getElementById('status').textContent = 'Saved locally';
+  });
+}
+
+async function submitQuiz() {
+  const container = document.getElementById('quiz');
+  const answers = {};
+  container.querySelectorAll('input[type=radio]:checked').forEach(inp => {
+    const qid = parseInt(inp.name.split('_')[1]);
+    answers[qid] = inp.value;
+  });
+  localStorage.setItem(storageKey, JSON.stringify(answers));
+
+  try {
+    if(!assignmentId) throw new Error('no assignment');
+    const res = await fetch(`http://127.0.0.1:5000/api/student/assignment/${assignmentId}/submit-quiz`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      body: JSON.stringify({ answers })
+    });
+    if (!res.ok) throw new Error('submit failed');
+    const result = await res.json();
+    localStorage.removeItem(pendingKey);
+    document.getElementById('status').textContent = `Submitted. Score: ${result.score}/10`;
+  } catch (e) {
+    localStorage.setItem(pendingKey, '1');
+    document.getElementById('status').textContent = 'Offline. Will auto-submit when back online...';
+  }
+}
+
+window.addEventListener('online', async () => {
+  if (localStorage.getItem(pendingKey)) {
+    await submitQuiz();
+  }
+});
+
+document.getElementById('submit').addEventListener('click', submitQuiz);
+loadQuiz();

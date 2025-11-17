@@ -1,0 +1,31 @@
+@startuml
+skinparam backgroundColor #fff
+skinparam packageStyle rectangle
+
+actor Admin as A
+actor Teacher as T
+actor User as U
+
+rectangle "E-Learning Website for Basic IT Beginners\nFlask API + HTML CSS JS" as System {
+  rectangle "Web UI\nHTML CSS JS" as UI
+  rectangle "REST API\nFlask + JWT RBAC" as API
+  rectangle "Notification Module\nEmail / Alerts" as Noti
+}
+
+database "Database\nMySQL or SQLite" as DB
+queue "Email Server\nOTP & Notifications" as Email
+cloud "AI API Service\nChatbot" as AI
+
+A --> UI : Access via UI
+T --> UI : Access via UI
+U --> UI : Register, Learn, Quizzes
+
+UI --> API : HTTP/JSON
+API --> DB : CRUD data
+Noti --> Email : Send OTP/notifications
+API --> Noti : Trigger events
+
+API --> AI : Send question
+AI --> API : Return response
+
+@enduml
