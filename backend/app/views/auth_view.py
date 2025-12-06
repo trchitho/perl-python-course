@@ -1,11 +1,13 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, current_app
 from app import db
 from app.models.user_model import User
 from app.services.jwt_service import issue_token
 from sqlalchemy import text
 from werkzeug.security import generate_password_hash, check_password_hash
+import logging
 
 auth_bp = Blueprint('auth_v2', __name__)
+logger = logging.getLogger(__name__)
 
 
 @auth_bp.route('/register', methods=['POST'])
@@ -43,6 +45,10 @@ def register():
     u.set_password(password)
     db.session.add(u)
     db.session.commit()
+    
+    # Log successful registration (QA03: Security)
+    logger.info(f"🔐 NEW USER REGISTERED: {email} (role: {role}) - Password hashed with PBKDF2")
+    
     return jsonify({'message': 'Registration successful'}), 201
 
 
@@ -81,17 +87,25 @@ def login():
             # fallback if stored plain text (not recommended)
             ok = (password == str(pwd_hash))
         if not ok:
+            logger.warning(f"🔒 LOGIN FAILED: Invalid credentials for {email}")
             return jsonify({'message': 'Incorrect email or password'}), 401
         if is_active is False:
+            logger.warning(f"🔒 LOGIN BLOCKED: Account {email} is locked")
             return jsonify({'message': 'Account is locked'}), 403
+        
         token = issue_token(uid, role or 'student')
+        logger.info(f"✅ LOGIN SUCCESS: {email} (role: {role}) - JWT token issued")
         return jsonify({'token': token, 'fullname': fullname, 'role': role or 'student', 'email': email}), 200
 
     # Generic ORM path
     u = User.query.filter_by(email=email).first()
     if not u or not u.check_password(password):
+        logger.warning(f"🔒 LOGIN FAILED: Invalid credentials for {email}")
         return jsonify({'message': 'Incorrect email or password'}), 401
     if getattr(u, 'is_active', True) is False:
+        logger.warning(f"🔒 LOGIN BLOCKED: Account {email} is locked")
         return jsonify({'message': 'Account is locked'}), 403
+    
     token = issue_token(u.id, u.role)
+    logger.info(f"✅ LOGIN SUCCESS: {email} (role: {u.role}) - JWT token issued")
     return jsonify({'token': token, 'fullname': u.fullname, 'role': u.role, 'email': u.email}), 200

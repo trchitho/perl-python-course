@@ -1,0 +1,111 @@
+@startuml Sequence_Diagram_Student_Quiz_Submission
+!theme plain
+title Student Quiz Submission - Sequence Diagram (With Autosave)
+
+actor Student as student
+participant "Web UI/Browser" as ui
+participant "API Client" as apiclient
+participant "Flask API" as api
+participant "JWT Service" as jwt
+participant "Quiz Controller" as controller
+participant "Grading Engine" as grading
+participant "SQL Server" as db
+participant "Redis Cache" as redis
+
+autonumber
+
+student -> ui: Click "Start Quiz"
+ui -> apiclient: GET /api/student/quiz/:id
+apiclient -> api: HTTP GET + JWT token
+api -> jwt: Verify token
+jwt -> api: ✓ Valid (user_id=123)
+api -> db: SELECT quiz_id, questions
+db -> api: {Quiz, Questions}
+api -> apiclient: {quiz, questions}
+apiclient -> ui: Display quiz form
+
+ui -> student: Show quiz questions
+
+student -> ui: Answer Q1
+student -> ui: Answer Q2
+student -> ui: Answer Q3
+
+note over ui
+  Every 30 seconds: AUTOSAVE
+end note
+
+ui -> apiclient: POST /api/student/quiz/autosave
+apiclient -> api: {quiz_id, answers, progress}
+api -> jwt: Verify token
+jwt -> api: ✓ Valid
+api -> redis: SET quiz_draft:{user_id}:{quiz_id}
+redis -> api: ✓ Saved
+api -> apiclient: {success: true}
+apiclient -> ui: Show "Auto-saved" icon
+
+note over ui
+  User can continue...
+  If crash/network error, answers saved in Redis!
+end note
+
+student -> ui: Continue answering...
+student -> ui: Click Submit Quiz
+ui -> apiclient: POST /api/student/quiz/:id/submit
+
+apiclient -> api: {quiz_id, answers}
+api -> jwt: Verify token
+jwt -> api: ✓ Valid (user_id=123, role=student)
+api -> db: Check if already submitted
+db -> api: ✗ Not submitted yet
+
+api -> redis: GET quiz_draft:{user_id}:{quiz_id}
+redis -> api: {previous_autosaves}
+
+api -> db: SELECT quiz WHERE id=:id
+db -> api: {Quiz data, pass_score}
+
+api -> db: SELECT questions WHERE quiz_id=:id
+db -> api: {All questions with correct answers}
+
+api -> controller: submit_quiz(quiz_id, answers)
+controller -> grading: grade(questions, user_answers)
+
+grading -> grading: Loop through questions
+grading -> grading: Compare each answer
+grading -> grading: Calculate score: 85/100
+grading -> controller: {score=85, percentage=85, passed=true}
+
+controller -> db: INSERT QuizResult
+note right of db
+  {
+    user_id: 123,
+    quiz_id: 45,
+    score: 85,
+    percentage: 85.0,
+    passed: true,
+    submitted_at: NOW(),
+    answers: JSON
+  }
+end note
+db -> controller: ✓ Saved
+
+controller -> db: UPDATE Progress
+note right of db
+  UPDATE Progress 
+  SET quiz_completed=1, score=85
+  WHERE user_id=123 AND course_id=8
+end note
+db -> controller: ✓ Updated
+
+controller -> redis: DEL quiz_draft:{user_id}:{quiz_id}
+redis -> controller: ✓ Deleted (cleanup)
+
+controller -> api: {success, score, percentage, passed, feedback}
+api -> apiclient: HTTP 200 + JSON response
+apiclient -> ui: Display result
+
+ui -> student: Show score: 85% PASSED!
+ui -> student: Display feedback
+ui -> student: Show certificate button
+
+@enduml

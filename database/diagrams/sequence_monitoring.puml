@@ -1,0 +1,144 @@
+@startuml Sequence_Diagram_Admin_Monitoring
+!theme plain
+title Admin Monitoring Dashboard - Sequence Diagram
+
+actor Admin as admin
+participant "C&C Dashboard\nUI" as dashboard
+participant "API Client" as apiclient
+participant "Flask API\nMonitoring BP" as api
+participant "Monitoring Service" as monitor
+participant "System Monitor" as sysmon
+participant "Container Monitor" as containermon
+participant "Component Monitor" as compmon
+
+autonumber
+
+admin -> dashboard: Open C&C Dashboard
+
+dashboard -> apiclient: GET /api/monitoring/status
+apiclient -> api: HTTP GET + JWT (admin token)
+
+api -> api: Verify JWT + Check role=admin
+
+api -> monitor: get_overall_status()
+
+monitor -> sysmon: get_system_metrics()
+note right of sysmon
+  Using psutil library:
+  - CPU: 25.3%
+  - Memory: 45.2%
+  - Disk: 60.1%
+  - Uptime: 86400s
+  - Processes: 120
+end note
+sysmon -> monitor: {cpu, memory, disk, uptime}
+
+monitor -> containermon: get_container_status()
+note right of containermon
+  Check backend & database containers:
+  - Backend: running, CPU 15%, Mem 512MB
+  - Database: running, CPU 8%, Mem 1024MB
+end note
+containermon -> monitor: {containers: [...]}
+
+monitor -> compmon: get_component_status()
+note right of compmon
+  Health check each API component:
+  - api-auth: 125ms response
+  - api-quiz: 145ms response
+  - api-courses: 120ms response
+  - api-chatbot: 2500ms (calling OpenAI)
+  - database-connection: 50ms
+  - file-storage: 85ms
+end note
+compmon -> monitor: {components: [...]}
+
+monitor -> monitor: Aggregate status\n(priority-based)
+note right of monitor
+  Logic:
+  - If any critical: status = "critical" 🔴
+  - If any degraded: status = "degraded" 🟠
+  - If any warning: status = "warning" 🟡
+  - Else: status = "healthy" 🟢
+  
+  In this case: all healthy → 🟢
+end note
+
+monitor -> monitor: Check alerts\n(threshold-based)
+note right of monitor
+  Thresholds:
+  - CPU > 90%: critical ❌
+  - Memory > 90%: critical ❌
+  - Disk > 90%: critical ❌
+  - Response > 5000ms: warning ⚠️
+  - Error rate > 10%: warning ⚠️
+  
+  Current: No alerts ✓
+end note
+
+monitor -> api: {status, system, containers, components, alerts}
+
+api -> apiclient: HTTP 200 + JSON
+
+apiclient -> dashboard: Response received
+
+dashboard -> dashboard: Render dashboard
+note right of dashboard
+  - Main indicator: 🟢 HEALTHY
+  - System metrics with progress bars
+  - Container list with status
+  - Component list with response times
+  - Alerts section (empty/green)
+  - Last updated: <timestamp>
+end note
+
+dashboard -> admin: Display C&C Dashboard
+
+note over admin
+  Admin sees:
+  ┌─────────────────────┐
+  │ 🟢 E-LEARNING C&C    │
+  │ Status: HEALTHY     │
+  ├─────────────────────┤
+  │ SYSTEM STATUS       │
+  │ CPU: 25.3% ░░░░░░░ │
+  │ RAM: 45.2% ░░░░░░░ │
+  │ Disk: 60.1% ░░░░░░│
+  ├─────────────────────┤
+  │ CONTAINERS          │
+  │ 🟢 backend (running)│
+  │ 🟢 database (running)
+  ├─────────────────────┤
+  │ COMPONENTS          │
+  │ 🟢 api-auth: 125ms  │
+  │ 🟢 api-quiz: 145ms  │
+  │ 🟢 api-courses: 120ms
+  ├─────────────────────┤
+  │ ALERTS              │
+  │ ✓ No active alerts  │
+  └─────────────────────┘
+end note
+
+note over dashboard
+  Dashboard auto-refreshes
+  every 5 seconds
+end note
+
+loop Every 5 seconds
+  dashboard -> apiclient: GET /api/monitoring/status
+  apiclient -> api: HTTP GET
+  api -> monitor: get_overall_status()
+  monitor -> dashboard: Updated metrics
+  dashboard -> dashboard: Refresh UI
+end loop
+
+note right of admin
+  Admin can:
+  - Monitor real-time metrics
+  - Detect issues early
+  - View historical trends (future)
+  - Get alerts via email (future)
+  - Trigger auto-scaling (future)
+end note
+
+@enduml

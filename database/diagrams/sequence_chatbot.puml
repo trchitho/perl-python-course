@@ -1,0 +1,131 @@
+@startuml Sequence_Diagram_AI_Chatbot
+!theme plain
+title AI Chatbot Interaction - Sequence Diagram
+
+actor Student as student
+participant "Web UI\nChat Widget" as ui
+participant "API Client" as apiclient
+participant "Flask API\nChatbot BP" as api
+participant "Chatbot Controller" as controller
+participant "SQL Server DB" as db
+participant "OpenAI API" as openai
+
+autonumber
+
+student -> ui: Type question\n"How to solve quadratic equation?"
+
+student -> ui: Click Send
+
+ui -> apiclient: POST /api/ai/chatbot
+apiclient -> api: {question, context: {user_id, course_id}}
+
+api -> api: Verify JWT token
+
+api -> controller: process_question(question, user_id)
+
+controller -> db: SELECT recent_conversation\nFROM ChatbotHistory\nWHERE user_id=? LIMIT 10
+note right of db
+  Get conversation context
+  (last 10 messages)
+end note
+db -> controller: {previous_messages}
+
+controller -> controller: Prepare context
+note right of controller
+  System prompt:
+  "You are an E-Learning AI assistant.
+   Help students with course material.
+   Be concise and educational."
+   
+  User context:
+  - Current course: Python 101
+  - Current lesson: Algebra
+  - Previous questions: [...]
+end note
+
+controller -> openai: POST /v1/chat/completions
+note right of openai
+  Request:
+  {
+    model: "gpt-3.5-turbo",
+    messages: [
+      {role: "system", content: "..."},
+      {role: "user", content: "..."},
+      {role: "assistant", content: "..."},
+      ...
+      {role: "user", content: "How to solve...?"}
+    ],
+    temperature: 0.7,
+    max_tokens: 500
+  }
+end note
+
+note over openai
+  OpenAI processes request
+  (2-3 seconds)
+  Uses GPT-3.5 model
+end note
+
+openai -> controller: {choices: [{message: {content: "...answer..."}}]}
+note right of openai
+  Response:
+  "To solve a quadratic equation ax²+bx+c=0,
+   use the quadratic formula:
+   x = (-b ± √(b²-4ac)) / 2a
+   
+   For example: x² + 5x + 6 = 0
+   (x+2)(x+3) = 0
+   x = -2 or x = -3"
+end note
+
+controller -> db: INSERT INTO ChatbotHistory
+note right of db
+  {
+    user_id: 123,
+    question: "How to solve quadratic equation?",
+    answer: "To solve a quadratic...",
+    timestamp: NOW(),
+    model: "gpt-3.5-turbo",
+    tokens_used: 145
+  }
+end note
+db -> controller: ✓ Saved
+
+controller -> api: {answer, timestamp, sources}
+
+api -> apiclient: HTTP 200 + {answer}
+
+apiclient -> ui: Display answer in chat
+
+ui -> student: Show AI response\nwith formatting
+
+note over student
+  Chat bubble shows:
+  "To solve a quadratic equation ax²+bx+c=0,
+   use the quadratic formula:
+   x = (-b ± √(b²-4ac)) / 2a"
+   
+  + Copy button
+  + Helpful/Not helpful buttons
+end note
+
+student -> ui: Click "Helpful" button
+
+ui -> apiclient: POST /api/ai/chatbot/feedback
+apiclient -> api: {chatbot_id, helpful: true}
+
+api -> db: UPDATE ChatbotHistory\nSET is_helpful=1
+db -> api: ✓
+
+api -> apiclient: {success}
+apiclient -> ui: Update UI
+
+student -> ui: Ask follow-up question\n"Can you show another example?"
+
+note over ui
+  Process repeats...
+  New request includes previous conversation
+  for context-aware responses
+end note
+
+@enduml

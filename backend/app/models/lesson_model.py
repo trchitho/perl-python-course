@@ -3,15 +3,16 @@ from app import db
 
 
 class Lesson(db.Model):
-    __tablename__ = 'lessons'
-    id = db.Column(db.Integer, primary_key=True)  # LessonID
-    course_id = db.Column(db.Integer, db.ForeignKey('courses.id'), nullable=False)  # CourseID
-    title = db.Column(db.String(200), nullable=False)  # Title
-    video_url = db.Column(db.Text)  # VideoUrl
-    file_url = db.Column(db.Text)  # FileUrl
-    description = db.Column(db.Text)  # Description
-    order_index = db.Column(db.Integer)  # OrderIndex
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)  # CreatedAt
+    __tablename__ = 'Lessons'  # PascalCase for MSSQL
+    id = db.Column('LessonID', db.Integer, primary_key=True)  # LessonID
+    course_id = db.Column('CourseID', db.Integer, db.ForeignKey('Courses.CourseID'), nullable=False)  # CourseID
+    title = db.Column('Title', db.String(150), nullable=False)  # Title
+    video_url = db.Column('VideoUrl', db.String(255))  # VideoUrl
+    file_url = db.Column('FileUrl', db.String(255))  # FileUrl
+    quizzes = db.relationship('Quiz', back_populates='lesson', lazy=True)
+    description = db.Column('Description', db.Text)  # Description
+    order_index = db.Column('OrderIndex', db.Integer, default=1)  # OrderIndex
+    created_at = db.Column('CreatedAt', db.DateTime, default=datetime.utcnow)  # CreatedAt
     # Legacy fields for compatibility
-    content = db.Column(db.Text)
-    quiz = db.Column(db.Text)
+    content = db.Column('Content', db.Text)  # Content
+    # quiz = db.Column('Quiz', db.Text)  # Quiz (legacy) - Not in DB schema, commented out

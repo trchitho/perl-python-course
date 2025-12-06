@@ -1,0 +1,85 @@
+@startuml Activity_Diagram_Student_Learning_Flow
+!theme plain
+title Student Learning Flow - Activity Diagram
+
+start
+
+:Student logs in;
+
+:View available courses;
+
+:Select course;
+
+:View course lessons;
+
+:Open lesson materials;
+
+note right
+  - Read lesson content
+  - Watch videos
+  - Download materials
+end note
+
+:Mark lesson complete;
+
+:Check if quiz exists;
+
+if (Quiz available?) then (yes)
+  :View quiz questions;
+  
+  :Start answering quiz;
+  
+  loop Every 30 seconds
+    :AUTOSAVE answers\nto Redis;
+  end loop
+  
+  :Complete quiz;
+  
+  :Click Submit;
+  
+  :Backend grades quiz\n(compare answers);
+  
+  :Save result to DB;
+  
+  if (Score >= Pass Score?) then (yes)
+    :Display PASSED ✓;
+    
+    :Award certificate;
+    
+    :Update progress to 100%;
+  else (no)
+    :Display FAILED ✗;
+    
+    :Show explanation;
+    
+    :Allow retry;
+  endif
+  
+else (no)
+  :Mark course complete;
+endif
+
+if (More lessons?) then (yes)
+  :Return to lesson list;
+  
+else (no)
+  :Course completed!;
+  
+  :Download certificate;
+endif
+
+:View learning progress;
+
+note right
+  - Completed courses: 5
+  - Quiz score: 85%
+  - Certificate: 2
+end note
+
+:Optional: Use AI Chatbot\nfor help;
+
+:Logout;
+
+stop
+
+@enduml

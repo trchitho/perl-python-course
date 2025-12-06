@@ -1,0 +1,108 @@
+@startuml Activity_Diagram_Teacher_Workflow
+!theme plain
+title Teacher Workflow - Activity Diagram
+
+start
+
+:Teacher logs in;
+
+:View my courses;
+
+:Select course to manage;
+
+:View course dashboard;
+
+note right
+  - Total students: 45
+  - Avg score: 78%
+  - Active: 32
+end note
+
+:Choose action;
+
+if (Create new lesson?) then (yes)
+  :Open lesson editor;
+  
+  :Enter lesson title & content;
+  
+  :Create quiz questions;
+  
+  note right
+    - Multiple choice
+    - Short answer
+    - Essay
+  end note
+  
+  :Set passing score (e.g., 70%);
+  
+  :Add materials;
+  
+  loop Upload materials
+    :Select file (video/PDF/ZIP);
+    
+    :Upload to file storage;
+    
+    :System saves to /uploads/;
+  end loop
+  
+  :Publish lesson;
+  
+else if (Grade submissions?) then (yes)
+  :View student submissions;
+  
+  :Select submission to grade;
+  
+  if (Auto-graded?) then (yes, MCQ)
+    :View calculated score;
+    
+  else (no, essay)
+    :Read student answer;
+    
+    :Manually enter score;
+    
+    :Add feedback;
+  endif
+  
+  :Save grade;
+  
+  :Notify student;
+  
+  :System sends email to student;
+  
+else if (Manage students?) then (yes)
+  :View enrolled students;
+  
+  :Check attendance;
+  
+  :View progress per student;
+  
+  :Send announcement;
+  
+else if (View analytics?) then (yes)
+  :View course statistics;
+  
+  note right
+    - Completion rate: 85%
+    - Avg time/lesson: 45 min
+    - Top performer: John (92%)
+    - Struggling: Jane (45%)
+  end note
+  
+  :Generate report;
+  
+  :Download as PDF/Excel;
+  
+endif
+
+:More actions?;
+
+if (yes) then
+  :Choose action;
+  
+else (no)
+  :Logout;
+  
+  :Stop;
+endif
+
+@enduml

@@ -1,35 +1,50 @@
-from flask import Blueprint, request
-from flask_jwt_extended import jwt_required, get_jwt
+from flask import Blueprint
+from flask_jwt_extended import jwt_required
 from app.services.jwt_service import require_roles
 from app.controllers.announcement_controller import (
-    teacher_create_announcement,
-    teacher_list_announcements,
-    student_list_announcements,
+    get_announcements,
+    create_announcement,
+    update_announcement,
+    delete_announcement,
+    get_announcement_detail
 )
 
-ann_bp = Blueprint('ann_v2', __name__)
+announcement_bp = Blueprint('announcements', __name__)
 
 
-def _role():
-    claims = get_jwt() or {}
-    return claims.get('role')
-
-
-@ann_bp.route('/teacher/announcements', methods=['POST', 'GET'])
+@announcement_bp.route('', methods=['GET'])
 @jwt_required()
-def teacher_announcements():
-    if _role() != 'teacher' and _role() != 'admin':
-        return {'error': 'forbidden'}, 403
-    if request.method == 'POST':
-        return teacher_create_announcement(request.get_json() or {})
-    # GET
-    course_id = request.args.get('course_id', type=int)
-    return teacher_list_announcements(course_id)
+def announcements_list():
+    """Get all announcements for current user"""
+    return get_announcements()
 
 
-@ann_bp.route('/student/announcements', methods=['GET'])
+@announcement_bp.route('/<int:announcement_id>', methods=['GET'])
 @jwt_required()
-@require_roles('student','admin')
-def student_announcements():
-    course_id = request.args.get('course_id', type=int)
-    return student_list_announcements(course_id)
+def announcement_detail(announcement_id):
+    """Get single announcement"""
+    return get_announcement_detail(announcement_id)
+
+
+@announcement_bp.route('', methods=['POST'])
+@jwt_required()
+@require_roles('teacher', 'admin')
+def create_announcement_view():
+    """Create new announcement (Teacher/Admin only)"""
+    return create_announcement()
+
+
+@announcement_bp.route('/<int:announcement_id>', methods=['PUT'])
+@jwt_required()
+@require_roles('teacher', 'admin')
+def update_announcement_view(announcement_id):
+    """Update announcement (Teacher/Admin only)"""
+    return update_announcement(announcement_id)
+
+
+@announcement_bp.route('/<int:announcement_id>', methods=['DELETE'])
+@jwt_required()
+@require_roles('teacher', 'admin')
+def delete_announcement_view(announcement_id):
+    """Delete announcement (Teacher/Admin only)"""
+    return delete_announcement(announcement_id)

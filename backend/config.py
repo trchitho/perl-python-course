@@ -35,6 +35,7 @@ class Config:
             f'PWD={PASSWORD}',
             'Encrypt=yes',
             'TrustServerCertificate=yes',
+            'CharacterSet=UTF-8',  # Support Vietnamese characters
         ]
         odbc_cs = ';'.join(parts)
         encoded = urllib.parse.quote_plus(odbc_cs)
@@ -42,8 +43,19 @@ class Config:
         
 
     SQLALCHEMY_TRACK_MODIFICATIONS = False
-    JSON_AS_ASCII = False
-    # Keep default engine options minimal here; finalize in app factory
+    JSON_AS_ASCII = False  # Important for Vietnamese text
+    
+    # Connection Pool Configuration for Scalability
     SQLALCHEMY_ENGINE_OPTIONS = {
-        'pool_pre_ping': True,
+        'pool_pre_ping': True,  # Verify connections before using
+        'pool_size': int(os.getenv('DB_POOL_SIZE', '20')),  # Max connections in pool
+        'max_overflow': int(os.getenv('DB_MAX_OVERFLOW', '40')),  # Extra connections when pool full
+        'pool_timeout': int(os.getenv('DB_POOL_TIMEOUT', '30')),  # Timeout waiting for connection
+        'pool_recycle': int(os.getenv('DB_POOL_RECYCLE', '3600')),  # Recycle connections after 1 hour
+        'echo_pool': os.getenv('DB_ECHO_POOL', 'false').lower() == 'true',  # Log pool events
     }
+    
+    # Redis Cache Configuration
+    REDIS_URL = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
+    REDIS_ENABLED = os.getenv('REDIS_ENABLED', 'true').lower() in ('true', '1', 'yes')
+    CACHE_DEFAULT_TTL = int(os.getenv('CACHE_DEFAULT_TTL', '300'))  # 5 minutes

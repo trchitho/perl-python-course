@@ -1,11 +1,12 @@
 from flask import Blueprint, request
-from flask_jwt_extended import verify_jwt_in_request, get_jwt
+from flask_jwt_extended import verify_jwt_in_request, get_jwt, jwt_required
 from flask_cors import cross_origin
+from app.services.jwt_service import require_roles
 from app.controllers.admin_controller import (
     list_users, lock_user, unlock_user,
     create_user, update_user, delete_user, set_role,
     admin_stats,
-    list_enrollments_admin, approve_enrollment_admin, lock_enrollment_admin,
+    list_enrollments_admin, approve_enrollment_admin, reject_enrollment_admin,
     get_settings, update_settings, run_backup_job,
     list_logs, export_logs,
 )
@@ -93,9 +94,9 @@ def enroll_approve(en_id):
     return approve_enrollment_admin(en_id)
 
 
-@admin_bp.route('/enrollments/<int:en_id>/lock', methods=['POST'])
-def enroll_lock(en_id):
-    return lock_enrollment_admin(en_id)
+@admin_bp.route('/enrollments/<int:en_id>/reject', methods=['POST'])
+def enroll_reject(en_id):
+    return reject_enrollment_admin(en_id)
 
 
 @admin_bp.route('/settings', methods=['GET'])
@@ -122,3 +123,27 @@ def logs():
 def logs_export():
     fmt = request.args.get('format','csv')
     return export_logs(fmt)
+
+
+@admin_bp.route('/courses', methods=['GET'])
+@jwt_required()
+@require_roles('admin')
+def courses_list():
+    from app.controllers.admin_controller import list_courses_admin
+    return list_courses_admin()
+
+
+@admin_bp.route('/courses/<int:course_id>', methods=['DELETE'])
+@jwt_required()
+@require_roles('admin')
+def course_delete(course_id):
+    from app.controllers.admin_controller import delete_course_admin
+    return delete_course_admin(course_id)
+
+
+@admin_bp.route('/courses/<int:course_id>', methods=['PUT'])
+@jwt_required()
+@require_roles('admin')
+def course_update(course_id):
+    from app.controllers.admin_controller import update_course_admin
+    return update_course_admin(course_id, request.get_json() or {})

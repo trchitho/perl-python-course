@@ -1,93 +1,77 @@
-const API_BASE = 'http://127.0.0.1:5000/api';
+import { apiGet, apiPost, apiPut, apiPatch, apiDelete, API_BASE } from './apiConfig.js';
 
-export async function listUsers(token){
-  const res = await fetch(`${API_BASE}/admin/users`, { headers:{'Authorization':'Bearer '+token} });
-  if(!res.ok) throw new Error('Cannot fetch users');
-  return res.json();
+export async function listUsers(page = 1, perPage = 10){
+  return apiGet(`/admin/users?page=${page}&per_page=${perPage}`);
 }
 
-export async function lockUser(token, id){
-  const res = await fetch(`${API_BASE}/admin/users/${id}/lock`, { method:'POST', headers:{'Authorization':'Bearer '+token} });
-  return res.json();
+export async function lockUser(id){
+  return apiPost(`/admin/users/${id}/lock`);
 }
 
-export async function unlockUser(token, id){
-  const res = await fetch(`${API_BASE}/admin/users/${id}/unlock`, { method:'POST', headers:{'Authorization':'Bearer '+token} });
-  return res.json();
+export async function unlockUser(id){
+  return apiPost(`/admin/users/${id}/unlock`);
 }
 
 // New: create / update / delete and role assignment
-export async function createUser(token, body){
-  const res = await fetch(`${API_BASE}/admin/users`, { method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+token}, body: JSON.stringify(body) });
-  if(!res.ok) throw new Error('Create user failed');
-  return res.json();
+export async function createUser(body){
+  return apiPost('/admin/users', body);
 }
 
-export async function updateUser(token, id, body){
-  const res = await fetch(`${API_BASE}/admin/users/${id}`, { method:'PUT', headers:{'Content-Type':'application/json','Authorization':'Bearer '+token}, body: JSON.stringify(body) });
-  if(!res.ok) throw new Error('Update user failed');
-  return res.json();
+export async function updateUser(id, body){
+  return apiPut(`/admin/users/${id}`, body);
 }
 
-export async function deleteUser(token, id){
-  const res = await fetch(`${API_BASE}/admin/users/${id}`, { method:'DELETE', headers:{'Authorization':'Bearer '+token} });
-  if(!res.ok) throw new Error('Delete user failed');
-  return res.json();
+export async function deleteUser(id){
+  return apiDelete(`/admin/users/${id}`);
 }
 
-export async function setUserRole(token, id, role){
-  const res = await fetch(`${API_BASE}/admin/users/${id}/role`, { method:'PATCH', headers:{'Content-Type':'application/json','Authorization':'Bearer '+token}, body: JSON.stringify({role}) });
-  if(!res.ok) throw new Error('Set role failed');
-  return res.json();
+export async function setUserRole(id, role){
+  return apiPatch(`/admin/users/${id}/role`, { role });
 }
 
 // Enrollments
-export async function listEnrollments(token){
-  const res = await fetch(`${API_BASE}/admin/enrollments`, { headers:{'Authorization':'Bearer '+token} });
-  if(!res.ok) throw new Error('Cannot fetch enrollments');
-  return res.json();
+export async function listEnrollments(page = 1, perPage = 10){
+  return apiGet(`/admin/enrollments?page=${page}&per_page=${perPage}`);
 }
-export async function approveEnrollment(token, id){
-  const res = await fetch(`${API_BASE}/admin/enrollments/${id}/approve`, { method:'POST', headers:{'Authorization':'Bearer '+token} });
-  if(!res.ok) throw new Error('Approve enrollment failed');
-  return res.json();
+
+export async function approveEnrollment(id){
+  return apiPost(`/admin/enrollments/${id}/approve`);
 }
-export async function lockEnrollment(token, id){
-  const res = await fetch(`${API_BASE}/admin/enrollments/${id}/lock`, { method:'POST', headers:{'Authorization':'Bearer '+token} });
-  if(!res.ok) throw new Error('Lock enrollment failed');
-  return res.json();
+
+export async function lockEnrollment(id){
+  return apiPost(`/admin/enrollments/${id}/lock`);
 }
 
 // Stats & Logs
-export async function getAdminStats(token){
-  const res = await fetch(`${API_BASE}/admin/stats`, { headers:{'Authorization':'Bearer '+token} });
-  return res.ok ? res.json() : { users:0, courses:0, errors:0 };
+export async function getAdminStats(){
+  try {
+    return await apiGet('/admin/stats');
+  } catch (error) {
+    return { users: 0, courses: 0, errors: 0 };
+  }
 }
-export async function listLogs(token){
-  const res = await fetch(`${API_BASE}/admin/logs`, { headers:{'Authorization':'Bearer '+token} });
-  if(!res.ok) throw new Error('Cannot fetch logs');
-  return res.json();
+
+export async function listLogs(){
+  return apiGet('/admin/logs');
 }
+
 export function exportLogsCSV(){
   window.open(`${API_BASE}/admin/logs/export?format=csv`, '_blank');
 }
+
 export function exportLogsPDF(){
   window.open(`${API_BASE}/admin/logs/export?format=pdf`, '_blank');
 }
 
 // Settings
-export async function getSettings(token){
-  const res = await fetch(`${API_BASE}/admin/settings`, { headers:{'Authorization':'Bearer '+token} });
-  if(!res.ok) throw new Error('Cannot fetch settings');
-  return res.json();
+export async function getSettings(){
+  return apiGet('/admin/settings');
 }
-export async function updateSettings(token, body){
-  const res = await fetch(`${API_BASE}/admin/settings`, { method:'PUT', headers:{'Content-Type':'application/json','Authorization':'Bearer '+token}, body: JSON.stringify(body) });
-  if(!res.ok) throw new Error('Update settings failed');
-  return res.json();
+
+export async function updateSettings(body){
+  return apiPut('/admin/settings', body);
 }
-export async function runBackup(token){
-  const res = await fetch(`${API_BASE}/admin/backup`, { method:'POST', headers:{'Authorization':'Bearer '+token} });
-  if(!res.ok) throw new Error('Backup failed');
-  return res.json();
+
+export async function runBackup(){
+  return apiPost('/admin/backup');
 }

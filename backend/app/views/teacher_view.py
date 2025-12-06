@@ -5,10 +5,11 @@ from app.controllers.teacher_controller import (
     stats_for_teacher,
     list_courses, create_course, update_course, delete_course, toggle_course_status,
     list_lessons, create_lesson, reorder_lessons, update_lesson, delete_lesson,
-    list_quiz_results, create_question, list_quizzes, create_quiz, update_quiz, delete_quiz, update_question, delete_question,
+    list_quiz_results, list_questions, create_question, list_quizzes, create_quiz, update_quiz, delete_quiz, update_question, delete_question,
     list_all_quizzes_for_teacher,
-    list_subscribers, approve_subscriber, remove_subscriber,
+    list_subscribers, approve_subscriber, reject_subscriber, remove_subscriber, get_student_progress,
     list_course_scores,
+    import_quiz_questions,
 )
 
 teacher_bp = Blueprint('teacher_v2', __name__)
@@ -93,9 +94,21 @@ def course_scores(course_id):
 def teacher_all_quizzes():
     return list_all_quizzes_for_teacher()
 
-@teacher_bp.route('/quizzes/<int:quiz_id>/questions', methods=['POST'])
-def add_question(quiz_id):
+@teacher_bp.route('/quizzes/<int:quiz_id>/questions', methods=['GET', 'POST'])
+def quiz_questions(quiz_id):
+    if request.method == 'GET':
+        return list_questions(quiz_id)
     return create_question(quiz_id, request.get_json() or {})
+
+
+@teacher_bp.route('/quizzes/<int:quiz_id>/import', methods=['POST'])
+def import_questions(quiz_id):
+    """Import questions from uploaded Word file"""
+    data = request.get_json() or {}
+    file_path = data.get('file_path')
+    if not file_path:
+        return {'error': 'file_path is required'}, 400
+    return import_quiz_questions(quiz_id, file_path)
 
 
 @teacher_bp.route('/quizzes/<int:quiz_id>/results', methods=['GET'])
@@ -133,9 +146,19 @@ def subscribers(course_id):
     return list_subscribers(course_id)
 
 
+@teacher_bp.route('/courses/<int:course_id>/progress/<int:student_id>', methods=['GET'])
+def student_progress(course_id, student_id):
+    return get_student_progress(course_id, student_id)
+
+
 @teacher_bp.route('/subscribers/<int:enroll_id>/approve', methods=['POST'])
 def sub_approve(enroll_id):
     return approve_subscriber(enroll_id)
+
+
+@teacher_bp.route('/subscribers/<int:enroll_id>/reject', methods=['POST'])
+def sub_reject(enroll_id):
+    return reject_subscriber(enroll_id)
 
 
 @teacher_bp.route('/subscribers/<int:enroll_id>', methods=['DELETE'])

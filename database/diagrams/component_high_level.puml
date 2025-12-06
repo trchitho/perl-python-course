@@ -1,0 +1,109 @@
+@startuml Component_Diagram_ELearning_HighLevel
+!theme plain
+title E-Learning System - Component Diagram (High Level)
+
+package "Client Tier" {
+  component "Web Browser\n[HTML5, CSS3, JavaScript]" as WebBrowser
+  component "API Client Service\n[authAPI, courseAPI, etc.]" as APIClient
+}
+
+package "Application Tier - Flask Backend" {
+  component "Flask API Server\n[Flask + Blueprint]" as FlaskAPI
+  
+  package "Blueprints & Routes" {
+    component "auth_bp\n[Login, Register, Verify]" as AuthBP
+    component "lesson_bp\n[Lesson CRUD]" as LessonBP
+    component "quiz_bp\n[Quiz Submit, Grade]" as QuizBP
+    component "admin_bp\n[User Management]" as AdminBP
+    component "teacher_bp\n[Upload, Grade]" as TeacherBP
+    component "chatbot_bp\n[AI Chat]" as ChatbotBP
+    component "monitoring_bp\n[Health Status]" as MonitoringBP
+  }
+  
+  package "Services" {
+    component "JWT Service\n[Token, Verify]" as JWTService
+    component "Monitoring Service\n[Metrics, Alerts]" as MonitoringService
+  }
+}
+
+package "Data Tier" {
+  component "SQL Server\n[MSSQL Database]" as MSSQLDB
+  component "Redis Cache\n[Sessions, Autosave]" as RedisCache
+}
+
+package "External Services" {
+  component "File Storage Adapter\n[Upload/Download]" as FileStorage
+  component "Email Adapter\n[SMTP Service]" as EmailService
+  component "AI Chatbot Adapter\n[OpenAI API]" as ChatbotAI
+  component "Monitoring Adapter\n[psutil, Docker SDK]" as MonitoringAdapter
+}
+
+' Client to Backend connections
+WebBrowser --> APIClient: User interactions
+APIClient --> FlaskAPI: HTTP/HTTPS\n(JWT in header)
+
+' Flask API internal routing
+FlaskAPI --> AuthBP: route
+FlaskAPI --> LessonBP: route
+FlaskAPI --> QuizBP: route
+FlaskAPI --> AdminBP: route
+FlaskAPI --> TeacherBP: route
+FlaskAPI --> ChatbotBP: route
+FlaskAPI --> MonitoringBP: route
+
+' Authentication & Security
+AuthBP --> JWTService: verify token
+LessonBP --> JWTService: verify token
+QuizBP --> JWTService: verify token
+AdminBP --> JWTService: verify token
+TeacherBP --> JWTService: verify token
+
+' Monitoring
+MonitoringBP --> MonitoringService: get status
+MonitoringService --> MonitoringAdapter: collect metrics
+
+' Database connections
+AuthBP --> MSSQLDB: SQL Query
+LessonBP --> MSSQLDB: SQL Query
+QuizBP --> MSSQLDB: SQL Query
+AdminBP --> MSSQLDB: SQL Query
+TeacherBP --> MSSQLDB: SQL Query
+ChatbotBP --> MSSQLDB: save history
+
+' Redis connections
+JWTService --> RedisCache: JWT blacklist
+QuizBP --> RedisCache: autosave draft
+AuthBP --> RedisCache: session
+
+' External services
+TeacherBP --> FileStorage: upload
+LessonBP --> FileStorage: download
+AuthBP --> EmailService: send verification
+AdminBP --> EmailService: send notification
+ChatbotBP --> ChatbotAI: get response
+MonitoringService --> MonitoringAdapter: collect data
+
+note right of FlaskAPI
+  Handles all business logic
+  - RBAC enforcement
+  - Input validation
+  - Error handling
+  - Response formatting
+end note
+
+note right of MSSQLDB
+  Persistent storage
+  - 12 tables
+  - Indexed for performance
+  - ACID transactions
+end note
+
+note right of RedisCache
+  Fast in-memory cache
+  - Quiz autosave (2h TTL)
+  - JWT tokens (24h TTL)
+  - Sessions (30d TTL)
+  - <10ms response
+end note
+
+@enduml

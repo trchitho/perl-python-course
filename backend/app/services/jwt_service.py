@@ -1,6 +1,9 @@
-from flask_jwt_extended import JWTManager, create_access_token, get_jwt
+from flask_jwt_extended import JWTManager, create_access_token, get_jwt, get_jwt_identity
 from functools import wraps
-from flask import jsonify
+from flask import jsonify, request
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def init_jwt(jwt: JWTManager):
@@ -26,8 +29,19 @@ def require_roles(*roles: str):
         @wraps(fn)
         def _inner(*args, **kwargs):
             claims = get_jwt() or {}
-            if roles and claims.get('role') not in roles:
+            user_role = claims.get('role')
+            
+            if roles and user_role not in roles:
+                # Log unauthorized access attempt (QA03: Security)
+                user_id = get_jwt_identity()
+                logger.warning(
+                    f"🔒 UNAUTHORIZED ACCESS BLOCKED: "
+                    f"User {user_id} (role: {user_role}) "
+                    f"attempted to access {request.method} {request.path} "
+                    f"(requires: {', '.join(roles)})"
+                )
                 return jsonify({'error': 'forbidden'}), 403
+            
             return fn(*args, **kwargs)
         return _inner
     return _wrap

@@ -1,0 +1,39 @@
+# Core Flask Framework
+flask==3.1.2
+flask-cors==6.0.1
+flask-sqlalchemy==3.1.1
+
+# Authentication & Security
+flask-jwt-extended==4.7.1
+
+# Configuration
+python-dotenv==1.0.1
+
+# HTTP Requests
+requests==2.32.5
+
+# Database Drivers
+pymysql==1.1.2              # MySQL driver (not used in current setup)
+pyodbc>=5.0.0               # MS SQL Server driver (REQUIRED)
+
+# Document Processing
+python-docx==1.2.0          # Word documents
+PyPDF2==3.0.1               # PDF processing
+
+# System Monitoring
+psutil>=5.9.0               # System and process utilities
+
+# Caching (Optional - system works without Redis)
+redis>=5.0.0                # Redis client for caching
+
+# AI Chatbot (Optional - chatbot won't work without API key)
+google-generativeai>=0.3.0  # Google Gemini AI
+
+# Production Server
+gunicorn>=21.2.0            # WSGI HTTP Server
+
+# Image Processing
+Pillow>=10.0.0              # Image compression and manipulation
+
+# Cloud Storage
+cloudinary>=1.36.0          # Cloudinary for video/image hosting

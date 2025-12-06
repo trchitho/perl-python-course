@@ -1,0 +1,68 @@
+@startuml Sequence_Diagram_Login_Flow
+!theme plain
+title User Login Flow - Sequence Diagram
+
+actor User as user
+participant "Web UI" as ui
+participant "API Client" as apiclient
+participant "Flask API" as api
+participant "JWT Service" as jwt
+participant "SQL Server DB" as db
+participant "Redis Cache" as redis
+
+autonumber
+
+user -> ui: Enter email & password
+user -> ui: Click "Login"
+
+ui -> apiclient: POST /api/auth/login
+apiclient -> api: {email, password}
+
+api -> api: Validate input\n(email format, password length)
+
+api -> db: SELECT * FROM User WHERE email=?
+db -> api: {User: id=1, email, password_hash, role}
+
+api -> jwt: verify_password(password, hash)
+note right of jwt
+  Using bcrypt.checkpw()
+  Hash: $2b$12$...
+  Compare with submitted password
+end note
+jwt -> jwt: ✓ Password matches
+
+jwt -> jwt: Create JWT token
+note right of jwt
+  Header: {type: "JWT", alg: "HS256"}
+  Payload: {
+    user_id: 1,
+    email: "student@example.com",
+    role: "student",
+    exp: <24h from now>,
+    iat: <now>
+  }
+  Signature: HMAC-SHA256(header.payload, SECRET_KEY)
+  Token: eyJhbGciOiJIUzI1NiJ9...
+end note
+
+jwt -> redis: SET jwt_blacklist_index
+note right of redis
+  Keep index of active JWTs for revocation
+end note
+redis -> jwt: ✓
+
+jwt -> api: {token, user_id, role}
+
+api -> db: INSERT INTO AuditLog (user_id, action, timestamp)
+note right of db
+  Log: User 1 logged in at 2024-11-24 10:30:00
+end note
+db -> api: ✓
+
+api -> apiclient: HTTP 200 + {token, user, role}
+apiclient -> ui: {token, user: {id, email, fullname, role}}
+
+ui -> ui: localStorage.setItem('jwt_token', token)
+ui -> user: Redirect to dashboard
+
+@enduml

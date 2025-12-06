@@ -2,7 +2,7 @@ from flask import Blueprint, jsonify, request
 from flask_jwt_extended import jwt_required
 from app.services.jwt_service import require_roles
 from app.controllers.student_quiz_controller import (
-    list_quizzes_for_course, get_quiz_detail, submit_quiz, list_quiz_results_for_student, list_progress_for_student,
+    list_quizzes_for_course, list_quizzes_for_lesson, get_quiz_detail, submit_quiz, list_quiz_results_for_student, list_progress_for_student,
 )
 from flask_cors import cross_origin
 
@@ -24,6 +24,14 @@ def student_progress():
 @require_roles('student','admin')
 def student_list_quizzes(course_id):
     return list_quizzes_for_course(course_id)
+
+
+@quiz_bp.route('/lessons/<int:lesson_id>/quizzes', methods=['GET', 'OPTIONS'])
+@cross_origin(origins='*', allow_headers=['Content-Type','Authorization'], methods=['GET','OPTIONS'])
+@jwt_required()
+@require_roles('student','admin')
+def student_list_lesson_quizzes(lesson_id):
+    return list_quizzes_for_lesson(lesson_id)
 
 
 @quiz_bp.route('/quizzes/<int:quiz_id>', methods=['GET', 'OPTIONS'])
