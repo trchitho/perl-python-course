@@ -1,0 +1,69 @@
+Question 1: What is the capital of Vietnam?
+A. Hanoi
+B. Ho Chi Minh City
+C. Da Nang
+D. Hue
+Answer: A
+
+Question 2: What is 2 + 2?
+A. 3
+B. 4
+C. 5
+D. 6
+Answer: B
+
+Question 3: What color is the sky?
+A. Red
+B. Green
+C. Blue
+D. Yellow
+Answer: C
+
+Question 4: How many days in a week?
+A. 5
+B. 6
+C. 7
+D. 8
+Answer: C
+
+Question 5: What is the largest planet?
+A. Earth
+B. Mars
+C. Jupiter
+D. Venus
+Answer: C
+
+Question 6: What is Python?
+A. A snake
+B. A programming language
+C. A framework
+D. A database
+Answer: B
+
+Question 7: What is Flask?
+A. A bottle
+B. A web framework
+C. A database
+D. A programming language
+Answer: B
+
+Question 8: What is SQL?
+A. A programming language
+B. A query language
+C. A framework
+D. A library
+Answer: B
+
+Question 9: What is HTML?
+A. A programming language
+B. A markup language
+C. A database
+D. A framework
+Answer: B
+
+Question 10: What is CSS?
+A. A programming language
+B. A styling language
+C. A database
+D. A framework
+Answer: B

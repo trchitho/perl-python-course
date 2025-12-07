@@ -74,8 +74,9 @@ def upload_video(file_data, original_filename, folder='elearning/videos'):
             resource_type='video',
             folder=folder,
             public_id=filename,
-            overwrite=False,
-            unique_filename=True,
+            overwrite=True,  # Allow overwriting existing files
+            unique_filename=False,  # Use exact filename
+            invalidate=True,  # Invalidate CDN cache
             # Video optimization
             eager=[
                 {'streaming_profile': 'hd', 'format': 'm3u8'},  # HLS streaming
@@ -134,8 +135,9 @@ def upload_image(file_data, original_filename, folder='elearning/images'):
             resource_type='image',
             folder=folder,
             public_id=filename,
-            overwrite=False,
-            unique_filename=True,
+            overwrite=True,  # Allow overwriting existing files
+            unique_filename=False,  # Use exact filename
+            invalidate=True,  # Invalidate CDN cache
             # Image optimization
             transformation=[
                 {'quality': 'auto', 'fetch_format': 'auto'}
@@ -191,8 +193,9 @@ def upload_document(file_data, original_filename, folder='elearning/documents'):
             resource_type='raw',  # For non-image/video files
             folder=folder,
             public_id=filename,
-            overwrite=False,
-            unique_filename=True
+            overwrite=True,  # Allow overwriting existing files
+            unique_filename=False,  # Use exact filename, don't add random suffix
+            invalidate=True  # Invalidate CDN cache to get fresh content
         )
         
         logger.info(f"[Cloudinary] Uploaded document: {result['public_id']}")

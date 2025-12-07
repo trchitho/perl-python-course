@@ -163,6 +163,17 @@ def create_app():
         app.register_blueprint(upload_bp, url_prefix='/api')
         app.register_blueprint(placement_test_bp, url_prefix='/api')
         # app.register_blueprint(announcement_bp, url_prefix='/api/announcements')
+    
+    # Error handlers - return JSON instead of HTML
+    @app.errorhandler(500)
+    def internal_error(error):
+        import logging
+        logging.error(f"Internal Server Error: {error}")
+        return {'message': 'Internal server error'}, 500
+    
+    @app.errorhandler(404)
+    def not_found(error):
+        return {'message': 'Not found'}, 404
 
     # Fix Vietnamese encoding for pyodbc - register after all init
     try:

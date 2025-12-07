@@ -552,6 +552,13 @@ def import_quiz_questions(quiz_id: int, file_path: str):
     """Import questions from uploaded Word file"""
     import requests
     import tempfile
+    from flask import current_app
+    
+    current_app.logger.info(f"[QuizImport] Importing questions for quiz {quiz_id} from: {file_path}")
+    
+    if not file_path:
+        current_app.logger.error("[QuizImport] file_path is empty or None")
+        return jsonify({'error': 'file_path is required'}), 400
     
     tid = int(get_jwt_identity())
     quiz, error = _get_teacher_quiz(quiz_id, tid)
@@ -562,14 +569,20 @@ def import_quiz_questions(quiz_id: int, file_path: str):
     if file_path.startswith('http://') or file_path.startswith('https://'):
         # Download from URL (Cloudinary)
         try:
+            current_app.logger.info(f"[QuizImport] Downloading from Cloudinary: {file_path}")
             response = requests.get(file_path, timeout=30)
             response.raise_for_status()
+            
+            current_app.logger.info(f"[QuizImport] Downloaded {len(response.content)} bytes")
             
             # Save to temp file
             with tempfile.NamedTemporaryFile(delete=False, suffix='.docx') as tmp_file:
                 tmp_file.write(response.content)
                 full_path = tmp_file.name
+            
+            current_app.logger.info(f"[QuizImport] Saved to temp file: {full_path}")
         except Exception as e:
+            current_app.logger.error(f"[QuizImport] Download failed: {str(e)}")
             return jsonify({'error': f'Failed to download file from cloud: {str(e)}'}), 400
     else:
         # Local file path
@@ -580,13 +593,19 @@ def import_quiz_questions(quiz_id: int, file_path: str):
             return jsonify({'error': 'Uploaded file not found'}), 404
     
     # Parse questions from Word file
+    current_app.logger.info(f"[QuizImport] Parsing document: {full_path}")
     result = parse_quiz_from_docx(full_path)
     
+    current_app.logger.info(f"[QuizImport] Parse result: success={result['success']}, count={result.get('count', 0)}")
+    
     if not result['success']:
-        return jsonify({'error': result.get('error', 'Failed to parse document')}), 400
+        error_msg = result.get('error', 'Failed to parse document')
+        current_app.logger.error(f"[QuizImport] Parse failed: {error_msg}")
+        return jsonify({'error': error_msg}), 400
     
     if not result['questions']:
-        return jsonify({'error': 'No valid questions found in document'}), 400
+        current_app.logger.warning("[QuizImport] No valid questions found in document")
+        return jsonify({'error': 'No valid questions found in document. Please check the format.'}), 400
     
     # Add questions to database
     added_count = 0

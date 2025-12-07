@@ -353,12 +353,19 @@ const QuizzesPage = () => {
       if (!uploadResponse.ok) throw new Error('Failed to upload file');
 
       const uploadResult = await uploadResponse.json();
+      console.log('Upload result:', uploadResult);
 
       // Step 2: Import questions from uploaded file
       // Use URL if from Cloudinary, otherwise use path
       const filePath = uploadResult.storage === 'cloudinary' 
         ? (uploadResult.secure_url || uploadResult.url)
         : uploadResult.path;
+
+      console.log('File path for import:', filePath);
+
+      if (!filePath) {
+        throw new Error('File path not found in upload result');
+      }
 
       const importResponse = await fetch(`http://localhost:5000/api/teacher/quizzes/${selectedQuiz.id}/import`, {
         method: 'POST',

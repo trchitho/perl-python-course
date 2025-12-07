@@ -6,6 +6,9 @@ import Layout from "./components/Layout";
 import HomePage from "./pages/HomePage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
+import ForgotPasswordPage from "./pages/ForgotPasswordPage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
+import GoogleCallbackPage from "./pages/GoogleCallbackPage";
 import DashboardPage from "./pages/DashboardPage";
 
 // Admin pages
@@ -57,6 +60,18 @@ const router = createBrowserRouter([
       {
         path: "register",
         element: <RegisterPage />,
+      },
+      {
+        path: "forgot-password",
+        element: <ForgotPasswordPage />,
+      },
+      {
+        path: "reset-password",
+        element: <ResetPasswordPage />,
+      },
+      {
+        path: "auth/google/callback",
+        element: <GoogleCallbackPage />,
       },
       {
         path: "dashboard",

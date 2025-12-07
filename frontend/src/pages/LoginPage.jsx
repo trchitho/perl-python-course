@@ -198,6 +198,74 @@ const LoginPage = () => {
               >
                 Sign In
               </Button>
+
+              <Box sx={{ position: 'relative', my: 3 }}>
+                <Box
+                  sx={{
+                    position: 'absolute',
+                    top: '50%',
+                    left: 0,
+                    right: 0,
+                    height: '1px',
+                    bgcolor: 'divider',
+                  }}
+                />
+                <Typography
+                  variant="body2"
+                  sx={{
+                    position: 'relative',
+                    textAlign: 'center',
+                    bgcolor: 'background.paper',
+                    display: 'inline-block',
+                    px: 2,
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    color: 'text.secondary',
+                  }}
+                >
+                  OR
+                </Typography>
+              </Box>
+
+              <Button
+                fullWidth
+                variant="outlined"
+                size="large"
+                onClick={async () => {
+                  try {
+                    const response = await fetch('http://localhost:5000/api/auth/google/url');
+                    const data = await response.json();
+                    if (data.auth_url) {
+                      window.location.href = data.auth_url;
+                    } else {
+                      setError('Google Sign-In không khả dụng');
+                    }
+                  } catch (err) {
+                    setError('Không thể kết nối với Google');
+                  }
+                }}
+                sx={{
+                  py: 1.5,
+                  fontSize: '1rem',
+                  fontWeight: 600,
+                  borderColor: '#4285f4',
+                  color: '#4285f4',
+                  '&:hover': {
+                    borderColor: '#357ae8',
+                    bgcolor: 'rgba(66, 133, 244, 0.04)',
+                  },
+                }}
+                startIcon={
+                  <Box
+                    component="img"
+                    src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
+                    alt="Google"
+                    sx={{ width: 20, height: 20 }}
+                  />
+                }
+              >
+                Sign in with Google
+              </Button>
               <Grid container spacing={2}>
                 <Grid item xs={12} sm={6}>
                   <MuiLink

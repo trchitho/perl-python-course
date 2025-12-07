@@ -64,6 +64,9 @@ def upload_file():
         
         if result['success']:
             logger.info(f"[Upload] User {user_id} uploaded to Cloudinary: {result.get('public_id', file.filename)}")
+            # Ensure path is set for compatibility - prefer secure_url (https)
+            if 'path' not in result:
+                result['path'] = result.get('secure_url') or result.get('url')
             return jsonify({
                 **result,
                 'storage': 'cloudinary'

@@ -29,6 +29,11 @@ redis>=5.0.0                # Redis client for caching
 # AI Chatbot (Optional - chatbot won't work without API key)
 google-generativeai>=0.3.0  # Google Gemini AI
 
+# Google OAuth 2.0
+google-auth>=2.23.0         # Google authentication library
+google-auth-oauthlib>=1.1.0 # OAuth 2.0 helpers
+google-auth-httplib2>=0.1.1 # HTTP library for Google Auth
+
 # Production Server
 gunicorn>=21.2.0            # WSGI HTTP Server
 
