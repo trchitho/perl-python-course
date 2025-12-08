@@ -40,10 +40,19 @@ const CoursesPage = () => {
     fetchCourses();
   }, []);
 
-  const fetchCourses = async () => {
+  // Debounce search to avoid too many API calls
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchCourses(searchQuery);
+    }, 500); // Wait 500ms after user stops typing
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  const fetchCourses = async (search = '') => {
     try {
       setLoading(true);
-      const data = await listAllCourses();
+      const data = await listAllCourses(search);
       setCourses(data || []);
     } catch (err) {
       setError(err.message || 'Không thể tải danh sách khóa học');
@@ -69,15 +78,8 @@ const CoursesPage = () => {
     navigate(`/student/course-details?course_id=${courseId}`);
   };
 
-  const filteredCourses = courses.filter((course) => {
-    if (!searchQuery) return true;
-    const query = searchQuery.toLowerCase();
-    return (
-      (course.name || course.title || '').toLowerCase().includes(query) ||
-      (course.description || '').toLowerCase().includes(query) ||
-      (course.category || '').toLowerCase().includes(query)
-    );
-  });
+  // Server-side filtering, no need for client-side filter
+  const filteredCourses = courses;
 
   if (loading) {
     return (

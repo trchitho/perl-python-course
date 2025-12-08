@@ -10,7 +10,9 @@ lesson_bp = Blueprint('lesson_v2', __name__)
 @jwt_required()
 @require_roles('student','admin')
 def all_courses():
-    return list_all_courses_for_student()
+    # Get search query from URL parameters
+    search_query = request.args.get('search', '').strip()
+    return list_all_courses_for_student(search_query=search_query)
 
 
 @lesson_bp.route('/enroll', methods=['POST'])

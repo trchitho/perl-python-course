@@ -8,37 +8,62 @@ from app.models.enrollment_model import Enrollment
 from app.services.cache_service import cache_get, cache_set, cache_delete_pattern
 
 
-def list_all_courses_for_student():
+def list_all_courses_for_student(search_query=''):
     """
     Lists all available courses, indicating which ones the current student is enrolled in.
     Uses SQLAlchemy ORM for database queries with Redis caching.
+    
+    Args:
+        search_query: Optional search string to filter courses
     """
     from sqlalchemy import text
+    import logging
+    logger = logging.getLogger(__name__)
+    
     sid = get_jwt_identity()
     
-    # Try cache first
-    cache_key = f"courses:student:{sid}"
-    cached_data = cache_get(cache_key)
-    if cached_data:
-        return jsonify(cached_data)
+    # Log search query
+    if search_query:
+        logger.info(f"🔍 COURSE SEARCH: User {sid} searching for '{search_query}'")
+    
+    # Try cache first (only if no search query)
+    cache_key = f"courses:student:{sid}:search:{search_query}"
+    if not search_query:
+        cached_data = cache_get(f"courses:student:{sid}")
+        if cached_data:
+            logger.info(f"📦 CACHE HIT: Courses for user {sid}")
+            return jsonify(cached_data)
 
     # Get IDs of courses the student is enrolled in
     # Use raw SQL for MSSQL to handle column name differences
-    if db.get_engine().dialect.name == 'mssql':
+    if db.engine.dialect.name == 'mssql':
         try:
             rows = db.session.execute(text(
                 'SELECT [CourseID] FROM [dbo].[Enrollments] WHERE [UserID] = :sid'
             ), {'sid': sid}).fetchall()
             enrolled_ids = {row[0] for row in rows}
         except Exception as e:
-            print(f"[Warning] Error querying enrollments: {e}")
+            logger.error(f"[Warning] Error querying enrollments: {e}")
             enrolled_ids = set()
     else:
         enrolled_courses = Enrollment.query.filter_by(student_id=sid).with_entities(Enrollment.course_id).all()
         enrolled_ids = {e[0] for e in enrolled_courses}
 
     # Eagerly load the teacher relationship to avoid N+1 queries
-    courses = Course.query.options(db.joinedload(Course.teacher)).all()
+    query = Course.query.options(db.joinedload(Course.teacher))
+    
+    # Apply search filter if provided
+    if search_query:
+        search_pattern = f"%{search_query}%"
+        query = query.filter(
+            db.or_(
+                Course.name.ilike(search_pattern),
+                Course.description.ilike(search_pattern),
+                Course.category.ilike(search_pattern)
+            )
+        )
+    
+    courses = query.all()
     
     output = []
     for c in courses:
@@ -46,12 +71,18 @@ def list_all_courses_for_student():
             "id": c.id,
             "name": c.name,
             "description": c.description,
+            "category": c.category,
             "teacher_name": c.teacher.fullname if c.teacher else "N/A",
             "enrolled": c.id in enrolled_ids,
         })
     
-    # Cache for 5 minutes
-    cache_set(cache_key, output, ttl=300)
+    # Log results
+    if search_query:
+        logger.info(f"🔍 SEARCH RESULTS: Found {len(output)} courses matching '{search_query}'")
+    
+    # Cache for 5 minutes (only if no search)
+    if not search_query:
+        cache_set(f"courses:student:{sid}", output, ttl=300)
     
     return jsonify(output)
 
